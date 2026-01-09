@@ -18,6 +18,7 @@
 | Member 5 | netid5 | TBD |
 | Member 6 | netid6 | TBD |
 
+
 ## Tech Stack
 
 *To be decided*
