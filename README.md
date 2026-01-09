@@ -1,6 +1,6 @@
 # ECE 651 Project
 
-> **Course:** ECE651 – Foundations of Software Engineering  
+> **Course:** ECE 651 - Software Engineering  
 > **Term:** Winter 2026
 
 ## Overview
