@@ -1,6 +1,6 @@
 # ECE 651 Project
 
-> **Course:** ECE651 – Foundations of Software Engineering
+> **Course:** ECE651 – Foundations of Software Engineering  
 > **Term:** Winter 2026
 
 ## Overview
@@ -17,7 +17,6 @@
 | Member 4 | netid4 | TBD |
 | Member 5 | netid5 | TBD |
 | Member 6 | netid6 | TBD |
-
 
 ## Tech Stack
 
