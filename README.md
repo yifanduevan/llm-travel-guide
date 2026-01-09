@@ -15,6 +15,8 @@
 | Member 2 | netid2 | TBD |
 | Member 3 | netid3 | TBD |
 | Member 4 | netid4 | TBD |
+| Member 5 | netid1 | TBD |
+| Member 6 | netid2 | TBD |
 
 ## Tech Stack
 
