@@ -1,9 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { TransportSegment } from "./TripWorkspace";
 
-export default function TransportationView() {
-  const [segmentState, setSegmentState] = useState(segments);
+type TripInfo = {
+  titleOrDestination?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+};
+
+type Props = { trip?: TripInfo; segments?: TransportSegment[] };
+
+const fallbackImage =
+  "https://images.unsplash.com/photo-1468141589437-8e32ae39f934?auto=format&fit=crop&w=600&q=80";
+
+const fallbackSegments: TransportSegment[] = [];
+
+export default function TransportationView({ trip, segments }: Props) {
+  const initial = useMemo(
+    () => (segments && segments.length > 0 ? segments : fallbackSegments),
+    [segments],
+  );
+  const [segmentState, setSegmentState] = useState(initial);
+
+  useEffect(() => {
+    setSegmentState(initial);
+  }, [initial]);
 
   const toggleComplete = (title: string) => {
     setSegmentState((prev) =>
@@ -13,12 +35,16 @@ export default function TransportationView() {
     );
   };
 
+  const noData = !segmentState || segmentState.length === 0;
+
   return (
     <div className="flex flex-col gap-10 lg:flex-row">
       <div className="flex-1 min-w-0">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-semibold text-slate-900">Logistics</h2>
+            <h2 className="text-3xl font-semibold text-slate-900">
+              {trip?.titleOrDestination ?? "Logistics"}
+            </h2>
             <p className="mt-1 text-sm text-slate-600">
               Managed travel segments for your upcoming journey
             </p>
@@ -33,25 +59,24 @@ export default function TransportationView() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {segmentState.map((segment) => (
+        {noData ? (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
+            No transportation segments found for this trip.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {segmentState.map((segment) => (
             <div
-              key={segment.title}
+              key={segment.id}
               className={`group flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:shadow-lg md:flex-row ${
                 segment.completed ? "opacity-70 grayscale" : ""
               }`}
             >
-              <div className="h-32 w-full shrink-0 overflow-hidden md:h-auto md:w-48">
-                <div
-                  className="h-full w-full bg-cover bg-center"
-                  style={{ backgroundImage: `url('${segment.image}')` }}
-                />
-              </div>
               <div className="flex flex-1 flex-col items-center gap-6 p-6 md:flex-row">
-                <div className="flex-1 min-w-0">
+                <div className="flex-1">
                   <div className="mb-1 flex items-center gap-2">
                     <span className="material-symbols-outlined text-xl text-slate-900">
-                      {segment.icon}
+                      {segmentIcon(segment.type)}
                     </span>
                     <h3 className="text-lg font-semibold text-slate-900">
                       {segment.title}
@@ -60,52 +85,52 @@ export default function TransportationView() {
                   <div className="mt-4 flex items-center gap-8">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                        {segment.start.label}
+                        Departure
                       </p>
                       <p className="text-xl font-bold text-slate-900">
-                        {segment.start.time}
+                        {formatTime(segment.startTime)}
                       </p>
                       <p className="text-xs text-slate-600">
-                        {segment.start.location}
+                        {segment.startLocation ?? "TBD"}
                       </p>
                     </div>
-                    <div className="flex flex-1 flex-col items-center">
+                    <div className="flex mt-6 flex-1 flex-col items-center">
                       <div className="relative w-full border-t-2 border-dashed border-slate-200">
                         <span className="material-symbols-outlined absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-slate-500">
-                          {segment.timelineIcon}
+                          {segmentIcon(segment.type)}
                         </span>
                       </div>
-                      <p className="mt-1 text-[10px] text-slate-600">
-                        {segment.duration}
+                      <p className="mt-3 text-[10px] text-slate-600">
+                        {segment.durationText ?? "—"}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                        {segment.end.label}
+                        Arrival
                       </p>
                       <p className="text-xl font-bold text-slate-900">
-                        {segment.end.time}
+                        {formatTime(segment.endTime)}
                       </p>
                       <p className="text-xs text-slate-600">
-                        {segment.end.location}
+                        {segment.endLocation ?? "TBD"}
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="flex w-full shrink-0 items-center justify-between gap-4 border-t border-slate-200 pt-4 md:w-auto md:flex-col md:items-start md:justify-between md:border-t-0 md:border-l md:pl-6">
+                <div className="flex w-full shrink-0 items-center justify-between gap-3 border-t border-slate-200 pt-4 md:w-auto md:flex-col md:items-start md:justify-between md:border-t-0 md:border-l md:pl-4">
                   <div className="text-right md:text-left">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                      {segment.meta.label}
+                      Confirmation
                     </p>
                     <p className="font-mono text-sm font-bold tracking-wider text-slate-900">
-                      {segment.meta.value}
+                      {segment.confirmationCode ?? "—"}
                     </p>
                   </div>
                   <button className="flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-900 hover:text-white">
                     <span className="material-symbols-outlined text-base">
-                      {segment.meta.icon}
+                      confirmation_number
                     </span>
-                    {segment.meta.cta}
+                    View tickets
                   </button>
                   <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
                     <input
@@ -120,7 +145,8 @@ export default function TransportationView() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </div>
 
       <aside className="w-full shrink-0 lg:w-80">
@@ -160,56 +186,23 @@ export default function TransportationView() {
   );
 }
 
-const segments = [
-  {
-    title: "Flight AF124",
-    icon: "flight_takeoff",
-    timelineIcon: "flight",
-    image:
-      "https://images.unsplash.com/photo-1468141589437-8e32ae39f934?auto=format&fit=crop&w=600&q=80",
-    start: { label: "Departure", time: "10:45 AM", location: "JFK, New York" },
-    end: { label: "Arrival", time: "11:05 PM", location: "CDG, Paris" },
-    duration: "7h 20m",
-    completed: true,
-    meta: {
-      label: "Confirmation",
-      value: "QX-7729L",
-      cta: "View tickets",
-      icon: "confirmation_number",
-    },
-  },
-  {
-    title: "Eurostar High-Speed",
-    icon: "train",
-    timelineIcon: "directions_railway",
-    image:
-      "https://images.unsplash.com/photo-1456878148510-0ab0d7abb3e0?auto=format&fit=crop&w=600&q=80",
-    start: { label: "Departure", time: "08:15 AM", location: "Paris Nord" },
-    end: { label: "Arrival", time: "10:30 AM", location: "St Pancras Intl" },
-    duration: "2h 15m",
-    completed: false,
-    meta: {
-      label: "Confirmation",
-      value: "EUR-90033",
-      cta: "View tickets",
-      icon: "confirmation_number",
-    },
-  },
-  {
-    title: "Premium Car Rental",
-    icon: "directions_car",
-    timelineIcon: "more_horiz",
-    image:
-      "https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=600&q=80",
-    start: { label: "Pick-up", time: "11:00 AM", location: "London Center" },
-    end: { label: "Drop-off", time: "06:00 PM", location: "Bristol East" },
-    duration: "Flexible",
-    completed: false,
-    meta: {
-      label: "Booking ID",
-      value: "HL-CAR-01",
-      cta: "Details",
-      icon: "receipt_long",
-    },
-  },
-];
+function formatTime(iso: string | null) {
+  if (!iso) return "TBD";
+  const dt = new Date(iso);
+  return dt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+function segmentIcon(type: string) {
+  switch (type) {
+    case "FLIGHT":
+      return "flight_takeoff";
+    case "TRAIN":
+      return "train";
+    case "CAR":
+      return "directions_car";
+    case "BUS":
+      return "directions_bus";
+    default:
+      return "more_horiz";
+  }
+}

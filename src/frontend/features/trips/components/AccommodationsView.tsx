@@ -1,13 +1,19 @@
 "use client";
 
-export default function AccommodationsView() {
+type TripInfo = {
+  titleOrDestination?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+};
+
+export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
   return (
     <div className="flex flex-col gap-10 lg:flex-row">
       <div className="flex-1">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-semibold text-slate-900">
-              Stays & Havens
+              {trip?.titleOrDestination ?? "Stays & Havens"}
             </h2>
             <p className="mt-1 text-sm text-slate-600">
               Manage your accommodations for the upcoming trip

@@ -18,6 +18,11 @@ type ItineraryDay = {
 
 type ItineraryViewProps = {
   editable?: boolean;
+  trip?: {
+    titleOrDestination?: string;
+    startDate?: string | null;
+    endDate?: string | null;
+  };
 };
 
 const days: ItineraryDay[] = [
@@ -70,18 +75,24 @@ const days: ItineraryDay[] = [
   },
 ];
 
-export default function ItineraryView({ editable = false }: ItineraryViewProps) {
+export default function ItineraryView({ editable = false, trip }: ItineraryViewProps) {
+  const header = trip?.titleOrDestination ?? "Your Journey";
+  const dates =
+    trip?.startDate && trip?.endDate
+      ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(
+            trip.endDate,
+          ).toLocaleDateString()}`
+      : "Dates TBD";
+
   return (
     <div className="flex flex-col gap-10 xl:flex-row">
       <div className="flex-1">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-semibold text-slate-900">
-              Your Journey
+              {header}
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              6 Days in Paris, France • Oct 12 - Oct 18
-            </p>
+            <p className="mt-1 text-sm text-slate-600">{dates}</p>
           </div>
           <button className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
             <span className="material-symbols-outlined text-lg">

@@ -1,13 +1,19 @@
 "use client";
 
-export default function ActivitiesView() {
+type TripInfo = {
+  titleOrDestination?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+};
+
+export default function ActivitiesView({ trip }: { trip?: TripInfo }) {
   return (
     <div className="flex flex-col gap-10 lg:flex-row">
       <div className="flex-1">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-3xl font-semibold text-slate-900">
-              Activities & Tours
+              {trip?.titleOrDestination ?? "Activities & Tours"}
             </h2>
             <p className="mt-1 text-sm text-slate-600">
               Must-see attractions and local experiences in Paris

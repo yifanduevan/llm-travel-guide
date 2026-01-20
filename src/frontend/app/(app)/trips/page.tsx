@@ -1,11 +1,44 @@
 import Link from "next/link";
 
-const sampleTrips = [
-  { id: "london-2024", name: "London", dateRange: "Mar 4 - Mar 11, 2024" },
-  { id: "kyoto-2024", name: "Kyoto", dateRange: "May 18 - May 26, 2024" },
-];
+type TripDto = {
+  id: string;
+  titleOrDestination: string;
+  startDate: string | null;
+  endDate: string | null;
+};
 
-export default function TripsPage() {
+async function fetchTrips(): Promise<TripDto[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  try {
+    const res = await fetch(`${baseUrl}/api/trips`, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error(`Failed to load trips: ${res.status}`);
+    }
+    return (await res.json()) as TripDto[];
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
+function formatRange(startDate: string | null, endDate: string | null) {
+  if (!startDate || !endDate) return "Dates TBD";
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const startFmt = start.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  const endFmt = end.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: start.getFullYear() === end.getFullYear() ? undefined : "numeric",
+  });
+  return `${startFmt} - ${endFmt}`;
+}
+
+export default async function TripsPage() {
+  const trips = await fetchTrips();
   return (
     <section className="space-y-6">
       <div className="space-y-2">
@@ -18,23 +51,29 @@ export default function TripsPage() {
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        {sampleTrips.map((trip) => (
-          <Link
-            key={trip.id}
-            href={`/trips/${trip.id}`}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow"
-          >
-            <div className="space-y-1">
-              <h2 className="text-xl font-semibold text-slate-900">
-                {trip.name}
-              </h2>
-              <p className="text-sm text-slate-600">{trip.dateRange}</p>
-            </div>
-            <p className="mt-3 text-sm font-medium text-slate-700 underline underline-offset-4">
-              View trip
-            </p>
-          </Link>
-        ))}
+        {trips.length === 0 ? (
+          <p className="text-sm text-slate-600">No trips yet.</p>
+        ) : (
+          trips.map((trip) => (
+            <Link
+              key={trip.id}
+              href={`/trips/${trip.id}`}
+              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow"
+            >
+              <div className="space-y-1">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  {trip.titleOrDestination}
+                </h2>
+                <p className="text-sm text-slate-600">
+                  {formatRange(trip.startDate, trip.endDate)}
+                </p>
+              </div>
+              <p className="mt-3 text-sm font-medium text-slate-700 underline underline-offset-4">
+                View trip
+              </p>
+            </Link>
+          ))
+        )}
       </div>
     </section>
   );

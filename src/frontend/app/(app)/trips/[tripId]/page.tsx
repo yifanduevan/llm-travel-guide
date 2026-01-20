@@ -1,16 +1,61 @@
 import Link from "next/link";
 import TripWorkspace from "@/features/trips/components/TripWorkspace";
+import { TransportSegment } from "@/features/trips/components/TripWorkspace";
 
 type TripDetailPageProps = {
   params: Promise<{ tripId: string }>;
 };
 
+type TripDto = {
+  id: string;
+  titleOrDestination: string;
+  startDate: string | null;
+  endDate: string | null;
+};
+
+async function fetchTrip(tripId: string): Promise<TripDto | null> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  try {
+    const res = await fetch(`${baseUrl}/api/trips/${tripId}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as TripDto;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSegments(tripId: string): Promise<TransportSegment[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  try {
+    const res = await fetch(
+      `${baseUrl}/api/trips/${tripId}/transport-segments`,
+      {
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as TransportSegment[];
+  } catch {
+    return [];
+  }
+}
+
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { tripId } = await params;
+  const [trip, transportSegments] = await Promise.all([
+    fetchTrip(tripId),
+    fetchSegments(tripId),
+  ]);
 
   return (
     <div className="space-y-6">
-      <TripWorkspace tripId={tripId} />
+      <TripWorkspace
+        tripId={tripId}
+        trip={trip ?? undefined}
+        transportSegments={transportSegments}
+      />
 
       <div className="flex gap-3">
         <Link

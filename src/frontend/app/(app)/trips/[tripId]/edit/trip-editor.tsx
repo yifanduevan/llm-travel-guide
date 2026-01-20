@@ -3,12 +3,28 @@ import TripWorkspace from "@/features/trips/components/TripWorkspace";
 
 type TripEditorProps = {
   tripId: string;
+  trip?: {
+    id: string;
+    titleOrDestination: string;
+    startDate: string | null;
+    endDate: string | null;
+  };
+  transportSegments?: import("@/features/trips/components/TripWorkspace").TransportSegment[];
 };
 
-export default function TripEditor({ tripId }: TripEditorProps) {
+export default function TripEditor({
+  tripId,
+  trip,
+  transportSegments,
+}: TripEditorProps) {
   return (
     <div className="space-y-4">
-      <TripWorkspace tripId={tripId} editable />
+      <TripWorkspace
+        tripId={tripId}
+        trip={trip}
+        transportSegments={transportSegments}
+        editable
+      />
       <div className="flex gap-3">
         <Link
           href={`/trips/${tripId}`}

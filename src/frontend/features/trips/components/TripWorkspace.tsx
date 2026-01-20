@@ -11,27 +11,61 @@ import { ViewName } from "../types";
 
 type TripWorkspaceProps = {
   tripId: string;
+  trip?: {
+    id: string;
+    titleOrDestination: string;
+    startDate: string | null;
+    endDate: string | null;
+  };
+  transportSegments?: TransportSegment[];
   editable?: boolean;
+};
+
+export type TransportSegment = {
+  id: string;
+  type: string;
+  title: string;
+  startTime: string | null;
+  startLocation: string | null;
+  endTime: string | null;
+  endLocation: string | null;
+  durationText: string | null;
+  status: string;
+  confirmationCode: string | null;
+  ticketUrl: string | null;
+  completed: boolean;
 };
 
 export default function TripWorkspace({
   tripId,
+  trip,
+  transportSegments,
   editable = false,
 }: TripWorkspaceProps) {
   const [currentView, setCurrentView] = useState<ViewName>("itinerary");
 
+  const heading = trip?.titleOrDestination ?? tripId;
+  const dateRange =
+    trip?.startDate && trip?.endDate
+      ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(
+            trip.endDate,
+          ).toLocaleDateString()}`
+      : null;
+
   const viewContent = useMemo(() => {
     switch (currentView) {
       case "itinerary":
-        return <ItineraryView editable={editable} />;
+        return <ItineraryView editable={editable} trip={trip} />;
       case "dining":
-        return <DiningView />;
+        return <DiningView trip={trip} />;
       case "transportation":
-        return <TransportationView />;
+        return (
+          <TransportationView trip={trip} segments={transportSegments} />
+        );
       case "accommodation":
-        return <AccommodationsView />;
+        return <AccommodationsView trip={trip} />;
       case "activities":
-        return <ActivitiesView />;
+        return <ActivitiesView trip={trip} />;
       default:
         return (
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -58,12 +92,15 @@ export default function TripWorkspace({
           {editable ? "Edit trip" : "Trip view"}
         </p>
         <h1 className="text-3xl font-semibold text-slate-900">
-          {tripId} itinerary
+          {heading}
         </h1>
-        <p className="text-slate-600">
-          Switch tabs to manage itinerary, dining, transportation, stays, and
-          activities.
-        </p>
+        <div className="text-slate-600 space-y-1">
+          {dateRange && <p className="text-sm">{dateRange}</p>}
+          <p className="text-sm">
+            Switch tabs to manage itinerary, dining, transportation, stays, and
+            activities.
+          </p>
+        </div>
       </div>
 
       <TabNavigation currentView={currentView} onViewChange={setCurrentView} />

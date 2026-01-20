@@ -1,14 +1,20 @@
 "use client";
 
-export default function DiningView() {
+type TripInfo = {
+  titleOrDestination?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+};
+
+export default function DiningView({ trip }: { trip?: TripInfo }) {
+  const header = trip?.titleOrDestination ?? "Gastronomy";
+
   return (
     <div className="flex flex-col gap-10 lg:flex-row">
       <div className="flex-1">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-semibold text-slate-900">
-              Gastronomy
-            </h2>
+            <h2 className="text-3xl font-semibold text-slate-900">{header}</h2>
             <p className="mt-1 text-sm text-slate-600">
               Curated dining reservations for your Paris trip
             </p>
