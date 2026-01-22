@@ -12,7 +12,10 @@ type TripDto = {
   endDate: string | null;
 };
 
-import { TransportSegment } from "@/features/trips/components/TripWorkspace";
+import {
+  Accommodation,
+  TransportSegment,
+} from "@/features/trips/components/TripWorkspace";
 
 async function fetchTrip(tripId: string): Promise<TripDto | null> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -48,12 +51,31 @@ async function fetchSegments(tripId: string): Promise<TransportSegment[]> {
     return [];
   }
 }
+async function fetchAccommodations(tripId: string): Promise<Accommodation[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  try {
+    const res = await fetch(
+      `${baseUrl}/api/trips/${tripId}/accommodations`,
+      {
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) {
+      return [];
+    }
+    return (await res.json()) as Accommodation[];
+  } catch (e) {
+    console.error("Failed to fetch accommodations", e);
+    return [];
+  }
+}
 
 export default async function EditTripPage({ params }: EditTripPageProps) {
   const { tripId } = await params;
-  const [trip, transportSegments] = await Promise.all([
+  const [trip, transportSegments, accommodations] = await Promise.all([
     fetchTrip(tripId),
     fetchSegments(tripId),
+    fetchAccommodations(tripId),
   ]);
 
   return (
@@ -62,6 +84,7 @@ export default async function EditTripPage({ params }: EditTripPageProps) {
         tripId={tripId}
         trip={trip ?? undefined}
         transportSegments={transportSegments}
+        accommodations={accommodations}
       />
     </Suspense>
   );

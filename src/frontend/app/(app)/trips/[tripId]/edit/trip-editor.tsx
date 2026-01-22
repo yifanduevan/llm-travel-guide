@@ -10,12 +10,14 @@ type TripEditorProps = {
     endDate: string | null;
   };
   transportSegments?: import("@/features/trips/components/TripWorkspace").TransportSegment[];
+  accommodations?: import("@/features/trips/components/TripWorkspace").Accommodation[];
 };
 
 export default function TripEditor({
   tripId,
   trip,
   transportSegments,
+  accommodations,
 }: TripEditorProps) {
   return (
     <div className="space-y-4">
@@ -23,6 +25,7 @@ export default function TripEditor({
         tripId={tripId}
         trip={trip}
         transportSegments={transportSegments}
+        accommodations={accommodations}
         editable
       />
       <div className="flex gap-3">

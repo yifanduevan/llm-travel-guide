@@ -52,7 +52,8 @@ public class Accommodation {
     private String confirmationCode;
 
     @JdbcTypeCode(SqlTypes.ARRAY)
-    private List<String> amenities;
+    @Column(name = "tags")
+    private List<String> tags;
 
     @Column(name = "image_url")
     private String imageUrl;
@@ -74,7 +75,7 @@ public class Accommodation {
             String currency,
             AccommodationStatus status,
             String confirmationCode,
-            List<String> amenities,
+            List<String> tags,
             String imageUrl,
             String notes) {
         this.id = id;
@@ -88,7 +89,7 @@ public class Accommodation {
         this.currency = currency;
         this.status = status;
         this.confirmationCode = confirmationCode;
-        this.amenities = amenities;
+        this.tags = tags;
         this.imageUrl = imageUrl;
         this.notes = notes;
     }
@@ -181,12 +182,12 @@ public class Accommodation {
         this.confirmationCode = confirmationCode;
     }
 
-    public List<String> getAmenities() {
-        return amenities;
+    public List<String> getTags() {
+        return tags;
     }
 
-    public void setAmenities(List<String> amenities) {
-        this.amenities = amenities;
+    public void setTags(List<String> tags) {
+        this.tags = tags;
     }
 
     public String getImageUrl() {

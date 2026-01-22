@@ -8,19 +8,44 @@ type TripInfo = {
   endDate?: string | null;
 };
 
-type Props = { trip?: TripInfo, reservations?: DiningReservation[] };
+type Props = {
+  tripId: string;
+  trip?: TripInfo;
+  reservations?: DiningReservation[];
+};
 
 const fallbackReservations: DiningReservation[] = [];
 
-export default function DiningView({ trip, reservations}: Props) {
+export default function DiningView({ trip, tripId, reservations }: Props) {
   const initial = useMemo(
-      () => (reservations && reservations.length > 0 ? reservations : fallbackReservations),
-      [reservations],
-    );
+    () =>
+      reservations && reservations.length > 0 ? reservations : fallbackReservations,
+    [reservations],
+  );
   const [reservationState, setReservationState] = useState(initial);
-    useEffect(() => {
-    setReservationState(initial);
-  }, [initial]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!tripId) return;
+      try {
+        setLoading(true);
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+        const res = await fetch(
+          `${baseUrl}/api/trips/${tripId}/dining-reservations`,
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as DiningReservation[];
+        setReservationState(data);
+      } finally {
+        setLoading(false);
+      }
+    };
+    // Only fetch if we don't already have reservations passed in
+    if (!reservations || reservations.length === 0) {
+      load().catch(() => setLoading(false));
+    }
+  }, [tripId, reservations]);
 
   const noData = !reservationState || reservationState.length === 0;
 
@@ -56,67 +81,82 @@ export default function DiningView({ trip, reservations}: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-2">
-          {reservationState.map((reservation) => (
-            <div
-              key={reservation.id}
-              className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-300 hover:shadow-xl"
-            >
-              <div className="relative h-56 w-full overflow-hidden">
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                  style={{ backgroundImage: `url('${reservation.image}')` }}
-                />
-                <div
-                  className={`absolute right-4 top-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm ${
-                    reservation.badgeTone === "accent"
-                      ? "bg-red-50 text-red-500"
-                      : "bg-white/90 text-slate-900"
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      reservation.badgeTone === "accent" ? "bg-red-500" : "bg-slate-900"
-                    }`}
+        {loading && (
+          <p className="text-sm text-slate-600">Loading reservations...</p>
+        )}
+
+        {noData && !loading ? (
+          <p className="text-sm text-slate-600">
+            No dining reservations found for this trip.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-2">
+            {reservationState.map((reservation) => (
+              <div
+                key={reservation.id}
+                className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-300 hover:shadow-xl"
+              >
+                <div className="relative h-56 w-full overflow-hidden">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                    style={{
+                      backgroundImage: `url('${reservation.imageUrl ?? ""}')`,
+                    }}
                   />
-                  {reservation.badge}
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="mb-2 flex items-start justify-between">
-                  <h3 className="text-xl font-semibold text-slate-900">
-                    {reservation.title}
-                  </h3>
-                  <span className="text-sm font-medium text-slate-600">
-                    {reservation.price}
-                  </span>
-                </div>
-                <div className="mb-4 flex flex-wrap gap-4 text-xs font-medium text-slate-600">
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm">
-                      schedule
-                    </span>
-                    {formatTime(reservation.time)}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm">
-                      restaurant_menu
-                    </span>
-                    {reservation.cuisine}
+                  <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-900 backdrop-blur-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
+                    {reservation.status}
                   </div>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-tight text-slate-900">
-                    Notes
-                  </label>
-                  <textarea
-                    className="h-12 w-full resize-none bg-transparent p-0 text-sm text-slate-700 outline-none focus:ring-0"
-                  />
+                <div className="p-6">
+                  <div className="mb-2 flex items-start justify-between">
+                    <h3 className="text-xl font-semibold text-slate-900">
+                      {reservation.name}
+                    </h3>
+                    <span className="text-sm font-medium text-slate-600">
+                      {reservation.priceTier ?? ""}
+                    </span>
+                  </div>
+                  <div className="mb-4 flex flex-wrap gap-4 text-xs font-medium text-slate-600">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm">
+                        schedule
+                      </span>
+                      {formatTime(reservation.time)}
+                    </div>
+                    {reservation.cuisine && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm">
+                          restaurant_menu
+                        </span>
+                        {reservation.cuisine}
+                      </div>
+                    )}
+                    {reservation.partySize && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm">
+                          group
+                        </span>
+                        {reservation.partySize} guests
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-3">
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-tight text-slate-900">
+                      Notes
+                    </label>
+                    <p className="text-sm text-slate-700">
+                      {reservation.notes || "No notes"}
+                    </p>
+                  </div>
+                  <div className="mt-3 text-xs text-slate-600">
+                    Confirmation: {reservation.confirmationCode ?? "—"}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <aside className="w-full shrink-0 lg:w-80">

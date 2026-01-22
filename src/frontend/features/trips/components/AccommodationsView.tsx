@@ -1,12 +1,50 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import { Accommodation } from "./TripWorkspace";
+
 type TripInfo = {
   titleOrDestination?: string;
   startDate?: string | null;
   endDate?: string | null;
 };
 
-export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
+type Props = {
+  tripId: string;
+  trip?: TripInfo;
+  accommodations?: Accommodation[];
+};
+
+export default function AccommodationsView({ trip, tripId, accommodations }: Props) {
+  const initial = useMemo(
+    () =>
+      accommodations && accommodations.length > 0 ? accommodations : [],
+    [accommodations],
+  );
+  const [stays, setStays] = useState<Accommodation[]>(initial);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!tripId) return;
+      try {
+        setLoading(true);
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+        const res = await fetch(`${baseUrl}/api/trips/${tripId}/accommodations`);
+        if (!res.ok) return;
+        const data = (await res.json()) as Accommodation[];
+        setStays(data);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (!accommodations || accommodations.length === 0) {
+      load().catch(() => setLoading(false));
+    }
+  }, [tripId, accommodations]);
+
+  const noData = stays.length === 0;
+
   return (
     <div className="flex flex-col gap-10 lg:flex-row">
       <div className="flex-1">
@@ -41,32 +79,41 @@ export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
           </div>
         </div>
 
+        {loading && (
+          <p className="text-sm text-slate-600">Loading accommodations...</p>
+        )}
+
+        {noData && !loading ? (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
+            No accommodations found for this trip.
+          </div>
+        ) : (
         <div className="space-y-6">
           {stays.map((stay) => (
             <div
-              key={stay.title}
+              key={stay.id ?? stay.name}
               className={`group flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-300 hover:shadow-xl md:flex-row ${
-                stay.status === "pending" ? "opacity-80 grayscale-[0.3]" : ""
+                stay.status === "PENDING" ? "opacity-80 grayscale-[0.3]" : ""
               }`}
             >
               <div className="relative h-64 w-full shrink-0 overflow-hidden md:h-auto md:w-72">
                 <div
                   className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                  style={{ backgroundImage: `url('${stay.image}')` }}
+                  style={{ backgroundImage: `url('${stay.imageUrl ?? ""}')` }}
                 />
                 <div
                   className={`absolute left-4 top-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm ${
-                    stay.status === "pending"
+                    stay.status === "PENDING"
                       ? "border border-red-200/50 bg-red-100/40 text-red-500"
                       : "border border-slate-100 bg-white/95 text-slate-900"
                   }`}
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      stay.status === "pending" ? "bg-red-500" : "bg-slate-900"
+                      stay.status === "PENDING" ? "bg-red-500" : "bg-slate-900"
                     }`}
                   />
-                  {stay.status === "pending" ? "Pending" : "Confirmed"}
+                  {stay.status === "PENDING" ? "Pending" : "Confirmed"}
                 </div>
               </div>
               <div className="flex flex-1 flex-col justify-between p-6">
@@ -74,21 +121,21 @@ export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
                   <div className="mb-2 flex items-start justify-between">
                     <div>
                       <h3 className="text-2xl font-semibold text-slate-900">
-                        {stay.title}
+                        {stay.name}
                       </h3>
                       <div className="mt-1 flex items-center gap-2 text-sm text-slate-600">
                         <span className="material-symbols-outlined text-base">
                           location_on
                         </span>
-                        {stay.address}
+                        {stay.address ?? "Address TBD"}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-xs font-bold uppercase tracking-tight text-slate-700">
-                        {stay.roomType}
+                        {stay.roomType ?? "Room type"}
                       </div>
                       <div className="mt-0.5 text-xl font-semibold text-slate-900">
-                        {stay.rate}
+                        {formatRate(stay.rate, stay.currency)}
                         <span className="text-xs font-medium text-slate-600">
                           /night
                         </span>
@@ -105,7 +152,7 @@ export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
                         <span className="material-symbols-outlined text-lg text-slate-900">
                           calendar_today
                         </span>
-                        {stay.checkIn}
+                        {stay.checkIn ? new Date(stay.checkIn).toDateString() : "TBD"}
                       </p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -116,13 +163,13 @@ export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
                         <span className="material-symbols-outlined text-lg text-slate-900">
                           event_busy
                         </span>
-                        {stay.checkOut}
+                        {stay.checkOut ? new Date(stay.checkOut).toDateString() : "TBD"}
                       </p>
                     </div>
                   </div>
 
                   <div className="mb-6 flex flex-wrap gap-2">
-                    {stay.tags.map((tag) => (
+                    {(stay.tags ?? []).map((tag) => (
                       <span
                         key={tag}
                         className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800"
@@ -138,7 +185,7 @@ export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
 
                 <div className="flex items-center justify-between border-t border-slate-200 pt-4">
                   <div className="flex items-center gap-2 text-xs text-slate-600">
-                    {stay.status === "pending" ? (
+                    {stay.status === "PENDING" ? (
                       <span className="font-semibold text-red-500">
                         Awaiting final confirmation
                       </span>
@@ -146,12 +193,12 @@ export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
                       <>
                         <span>Confirmation No:</span>
                         <span className="font-mono font-bold tracking-wider text-slate-900">
-                          {stay.confirmation}
+                          {stay.confirmationCode ?? "—"}
                         </span>
                       </>
                     )}
                   </div>
-                  {stay.status === "pending" ? (
+                  {stay.status === "PENDING" ? (
                     <button className="rounded-lg bg-slate-900/10 px-4 py-1.5 text-xs font-bold text-slate-900 transition hover:bg-slate-900/15">
                       Send reminder
                     </button>
@@ -168,6 +215,7 @@ export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       <aside className="w-full shrink-0 lg:w-80">
@@ -262,40 +310,16 @@ export default function AccommodationsView({ trip }: { trip?: TripInfo }) {
   );
 }
 
-const stays = [
-  {
-    title: "The Luminary Hotel",
-    status: "confirmed" as const,
-    address: "12 Rue de Rivoli, Paris, 75004",
-    roomType: "Premier Suite",
-    rate: "$450",
-    checkIn: "Oct 12, 2024",
-    checkOut: "Oct 15, 2024",
-    confirmation: "#FR-88219-X",
-    image:
-      "https://images.unsplash.com/photo-1501117716987-c8e1ecb210af?auto=format&fit=crop&w=800&q=80",
-    tags: ["Wi-Fi", "Infinity Pool", "Spa", "Valet"],
-  },
-  {
-    title: "Rive Gauche Boutique Stay",
-    status: "pending" as const,
-    address: "24 Blvd Saint-Germain, Paris",
-    roomType: "Deluxe Queen",
-    rate: "$280",
-    checkIn: "Oct 15, 2024",
-    checkOut: "Oct 18, 2024",
-    confirmation: "#FR-77882",
-    image:
-      "https://images.unsplash.com/photo-1505761671935-60b3a7427bad?auto=format&fit=crop&w=800&q=80",
-    tags: ["Breakfast Inc.", "Gym"],
-  },
-];
-
 const tagIcons: Record<string, string> = {
   "Wi-Fi": "wifi",
   "Infinity Pool": "pool",
-  Spa: "spa",
-  Valet: "parking_valet",
-  "Breakfast Inc.": "breakfast_dining",
-  Gym: "fitness_center",
+  "Spa": "spa",
+  "Valet": "parking_valet",
+  "Breakfast": "breakfast_dining",
+  "Gym": "fitness_center",
 };
+
+function formatRate(rate: string | null, currency: string | null) {
+  if (!rate) return "—";
+  return `${rate}${currency ? ` ${currency}` : ""}`;
+}

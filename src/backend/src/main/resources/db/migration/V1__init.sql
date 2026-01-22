@@ -104,7 +104,7 @@ CREATE TABLE accommodations (
   currency TEXT,
   status accommodation_status_enum NOT NULL,
   confirmation_code TEXT,
-  amenities TEXT[],
+  tags TEXT[],
   image_url TEXT,
   notes TEXT
 );

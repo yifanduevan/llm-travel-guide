@@ -15,7 +15,7 @@ public class DiningReservationMapper {
                 reservation.getName(),
                 reservation.getTime(),
                 reservation.getCuisine(),
-                reservation.getPriceTier(),
+                reservation.getPriceTier() != null ? reservation.getPriceTier().getDbValue() : null,
                 reservation.getStatus(),
                 reservation.getAddress(),
                 reservation.getNotes(),

@@ -19,6 +19,7 @@ type TripWorkspaceProps = {
   };
   transportSegments?: TransportSegment[];
   diningReservations?: DiningReservation[];
+  accommodations?: Accommodation[];
   editable?: boolean;
 };
 
@@ -39,19 +40,32 @@ export type TransportSegment = {
 
 export type DiningReservation = {
   id: string;
-  title: string;
-  reservationTime: string;
-  partySize: number;
-  specialRequests: string | null;
+  name: string;
+  time: string | null;
+  cuisine: string | null;
+  priceTier: string | null;
+  status: string;
+  address: string | null;
+  notes: string | null;
   confirmationCode: string | null;
-  badge: string;
-  badgeTone: "accent" | "neutral";
-  price: string;
-  time: string;
-  cuisine: string;
-  note: string | null;
-  image: string | null;
+  partySize: number | null;
+  imageUrl: string | null;
+};
 
+export type Accommodation = {
+  id: string;
+  name: string;
+  address: string | null;
+  roomType: string | null;
+  checkIn: string | null;
+  checkOut: string | null;
+  rate: string | null;
+  currency: string | null;
+  status: string;
+  confirmationCode: string | null;
+  tags: string[] | null;
+  imageUrl: string | null;
+  notes: string | null;
 };
 
 export default function TripWorkspace({
@@ -59,6 +73,7 @@ export default function TripWorkspace({
   trip,
   transportSegments,
   diningReservations,
+  accommodations,
   editable = false,
 }: TripWorkspaceProps) {
   const [currentView, setCurrentView] = useState<ViewName>("itinerary");
@@ -76,13 +91,25 @@ export default function TripWorkspace({
       case "itinerary":
         return <ItineraryView editable={editable} trip={trip} />;
       case "dining":
-        return <DiningView trip={trip} reservations={diningReservations} />;
+        return (
+          <DiningView
+            trip={trip}
+            tripId={tripId}
+            reservations={diningReservations}
+          />
+        );
       case "transportation":
         return (
           <TransportationView trip={trip} segments={transportSegments} />
         );
       case "accommodation":
-        return <AccommodationsView trip={trip} />;
+        return (
+          <AccommodationsView
+            trip={trip}
+            tripId={tripId}
+            accommodations={accommodations}
+          />
+        );
       case "activities":
         return <ActivitiesView trip={trip} />;
       default:
