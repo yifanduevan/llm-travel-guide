@@ -1,4 +1,6 @@
 "use client";
+import { useEffect, useMemo, useState } from "react";
+import { DiningReservation } from "./TripWorkspace";
 
 type TripInfo = {
   titleOrDestination?: string;
@@ -6,7 +8,22 @@ type TripInfo = {
   endDate?: string | null;
 };
 
-export default function DiningView({ trip }: { trip?: TripInfo }) {
+type Props = { trip?: TripInfo, reservations?: DiningReservation[] };
+
+const fallbackReservations: DiningReservation[] = [];
+
+export default function DiningView({ trip, reservations}: Props) {
+  const initial = useMemo(
+      () => (reservations && reservations.length > 0 ? reservations : fallbackReservations),
+      [reservations],
+    );
+  const [reservationState, setReservationState] = useState(initial);
+    useEffect(() => {
+    setReservationState(initial);
+  }, [initial]);
+
+  const noData = !reservationState || reservationState.length === 0;
+
   const header = trip?.titleOrDestination ?? "Gastronomy";
 
   return (
@@ -16,7 +33,7 @@ export default function DiningView({ trip }: { trip?: TripInfo }) {
           <div>
             <h2 className="text-3xl font-semibold text-slate-900">{header}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Curated dining reservations for your Paris trip
+              Curated dining reservations for your trip
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -40,38 +57,38 @@ export default function DiningView({ trip }: { trip?: TripInfo }) {
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-2">
-          {cards.map((card) => (
+          {reservationState.map((reservation) => (
             <div
-              key={card.title}
+              key={reservation.id}
               className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-300 hover:shadow-xl"
             >
               <div className="relative h-56 w-full overflow-hidden">
                 <div
                   className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                  style={{ backgroundImage: `url('${card.image}')` }}
+                  style={{ backgroundImage: `url('${reservation.image}')` }}
                 />
                 <div
                   className={`absolute right-4 top-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm ${
-                    card.badgeTone === "accent"
+                    reservation.badgeTone === "accent"
                       ? "bg-red-50 text-red-500"
                       : "bg-white/90 text-slate-900"
                   }`}
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      card.badgeTone === "accent" ? "bg-red-500" : "bg-slate-900"
+                      reservation.badgeTone === "accent" ? "bg-red-500" : "bg-slate-900"
                     }`}
                   />
-                  {card.badge}
+                  {reservation.badge}
                 </div>
               </div>
               <div className="p-6">
                 <div className="mb-2 flex items-start justify-between">
                   <h3 className="text-xl font-semibold text-slate-900">
-                    {card.title}
+                    {reservation.title}
                   </h3>
                   <span className="text-sm font-medium text-slate-600">
-                    {card.price}
+                    {reservation.price}
                   </span>
                 </div>
                 <div className="mb-4 flex flex-wrap gap-4 text-xs font-medium text-slate-600">
@@ -79,13 +96,13 @@ export default function DiningView({ trip }: { trip?: TripInfo }) {
                     <span className="material-symbols-outlined text-sm">
                       schedule
                     </span>
-                    {card.time}
+                    {formatTime(reservation.time)}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-sm">
                       restaurant_menu
                     </span>
-                    {card.cuisine}
+                    {reservation.cuisine}
                   </div>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-3">
@@ -94,7 +111,6 @@ export default function DiningView({ trip }: { trip?: TripInfo }) {
                   </label>
                   <textarea
                     className="h-12 w-full resize-none bg-transparent p-0 text-sm text-slate-700 outline-none focus:ring-0"
-                    defaultValue={card.note}
                   />
                 </div>
               </div>
@@ -133,53 +149,8 @@ export default function DiningView({ trip }: { trip?: TripInfo }) {
     </div>
   );
 }
-
-const cards = [
-  {
-    title: "La Boheme Bistro",
-    price: "$$$",
-    time: "8:30 PM",
-    cuisine: "French Contemporary",
-    badge: "Confirmed",
-    badgeTone: "default" as const,
-    image:
-      "https://images.unsplash.com/photo-1544145945-f90425340c7b?auto=format&fit=crop&w=600&q=80",
-    note:
-      "Ask for the corner table near the window. Great for local natural wine pairings.",
-  },
-  {
-    title: "Sushi Zen",
-    price: "$$$$",
-    time: "7:00 PM",
-    cuisine: "Japanese Omakase",
-    badge: "Waitlisted",
-    badgeTone: "accent" as const,
-    image:
-      "https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=600&q=80",
-    note:
-      "Waitlist priority for 15th anniversary celebration. Mention Mr. Saito.",
-  },
-  {
-    title: "Osteria Roma",
-    price: "$$",
-    time: "9:00 PM",
-    cuisine: "Italian Traditional",
-    badge: "Confirmed",
-    badgeTone: "default" as const,
-    image:
-      "https://images.unsplash.com/photo-1528838064774-1c7b4d74d0dd?auto=format&fit=crop&w=600&q=80",
-    note:
-      "Authentic carbonara. Highly recommended by local concierge.",
-  },
-  {
-    title: "The Green Kitchen",
-    price: "$$$",
-    time: "1:30 PM",
-    cuisine: "Farm-to-Table",
-    badge: "Confirmed",
-    badgeTone: "default" as const,
-    image:
-      "https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=600&q=80",
-    note: "Vegetarian friendly garden with stunning lunch views.",
-  },
-];
+function formatTime(iso: string | null) {
+  if (!iso) return "TBD";
+  const dt = new Date(iso);
+  return dt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}

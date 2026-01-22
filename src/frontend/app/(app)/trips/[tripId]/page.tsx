@@ -1,6 +1,7 @@
 import Link from "next/link";
 import TripWorkspace from "@/features/trips/components/TripWorkspace";
 import { TransportSegment } from "@/features/trips/components/TripWorkspace";
+import { DiningReservation } from "@/features/trips/components/TripWorkspace";
 
 type TripDetailPageProps = {
   params: Promise<{ tripId: string }>;
@@ -42,11 +43,28 @@ async function fetchSegments(tripId: string): Promise<TransportSegment[]> {
   }
 }
 
+async function fetchReservations(tripId: string): Promise<DiningReservation[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  try {
+    const res = await fetch(
+      `${baseUrl}/api/trips/${tripId}/dining-reservations`,
+      {
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as DiningReservation[];
+  } catch {
+    return [];
+  }
+}
+
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { tripId } = await params;
-  const [trip, transportSegments] = await Promise.all([
+  const [trip, transportSegments, diningReservations] = await Promise.all([
     fetchTrip(tripId),
     fetchSegments(tripId),
+    fetchReservations(tripId),
   ]);
 
   return (
@@ -55,6 +73,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
         tripId={tripId}
         trip={trip ?? undefined}
         transportSegments={transportSegments}
+        diningReservations={diningReservations}
       />
 
       <div className="flex gap-3">

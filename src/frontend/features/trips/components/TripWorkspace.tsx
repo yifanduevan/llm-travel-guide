@@ -18,6 +18,7 @@ type TripWorkspaceProps = {
     endDate: string | null;
   };
   transportSegments?: TransportSegment[];
+  diningReservations?: DiningReservation[];
   editable?: boolean;
 };
 
@@ -36,10 +37,28 @@ export type TransportSegment = {
   completed: boolean;
 };
 
+export type DiningReservation = {
+  id: string;
+  title: string;
+  reservationTime: string;
+  partySize: number;
+  specialRequests: string | null;
+  confirmationCode: string | null;
+  badge: string;
+  badgeTone: "accent" | "neutral";
+  price: string;
+  time: string;
+  cuisine: string;
+  note: string | null;
+  image: string | null;
+
+};
+
 export default function TripWorkspace({
   tripId,
   trip,
   transportSegments,
+  diningReservations,
   editable = false,
 }: TripWorkspaceProps) {
   const [currentView, setCurrentView] = useState<ViewName>("itinerary");
@@ -57,7 +76,7 @@ export default function TripWorkspace({
       case "itinerary":
         return <ItineraryView editable={editable} trip={trip} />;
       case "dining":
-        return <DiningView trip={trip} />;
+        return <DiningView trip={trip} reservations={diningReservations} />;
       case "transportation":
         return (
           <TransportationView trip={trip} segments={transportSegments} />

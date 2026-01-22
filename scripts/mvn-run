@@ -1,0 +1,12 @@
+#!/bin/zsh
+
+# Project-local Maven runner that pins the JDK and runs from backend dir
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# Move to backend dir (relative to script location)
+SCRIPT_DIR="$(cd -- "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
+cd "$SCRIPT_DIR/../src/backend" || exit 1
+
+# Pass through all arguments
+exec mvn -Dmaven.repo.local=./.m2 "$@"
