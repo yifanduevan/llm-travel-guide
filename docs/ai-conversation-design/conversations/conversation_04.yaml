@@ -1,0 +1,19 @@
+Conversation #4
+Scenario: Medium-budget cultural trip to Rome
+
+User Input:
+- Destination: Rome
+- Duration: 5 days
+- Group: Couple
+- Budget: Medium
+- Interests: History, Food
+
+AI Output:
+- Day 1: Colosseum and Roman Forum
+- Day 2: Vatican Museums
+- Day 3: Trastevere food tour
+- Day 4: Piazza Navona and Pantheon
+- Day 5: Leisure and shopping
+
+Observation / Reflection:
+The itinerary focused on historical landmarks while integrating food experiences, creating a culturally immersive trip.

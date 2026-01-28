@@ -1,0 +1,17 @@
+Conversation #12
+Scenario: Extended couple stay in Tokyo
+
+User Input:
+- Destination: Tokyo
+- Duration: 14 days
+- Group: Couple
+- Budget: Medium
+- Interests: Food, Culture
+
+AI Output:
+- Days 1–5: Central Tokyo highlights
+- Days 6–10: Day trips (Kamakura, Nikko, Hakone)
+- Days 11–14: Leisure, shopping, local neighborhoods
+
+Observation / Reflection:
+The AI expanded beyond the city center and incorporated regional excursions to avoid repetition.

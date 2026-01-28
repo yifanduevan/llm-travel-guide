@@ -1,0 +1,18 @@
+Conversation #2
+Scenario: Budget solo traveler visiting Paris
+
+User Input:
+- Destination: Paris
+- Duration: 4 days
+- Group: Solo
+- Budget: Budget
+- Interests: History, Culture
+
+AI Output:
+- Day 1: Walking tour of Montmartre
+- Day 2: Louvre exterior, Tuileries Garden
+- Day 3: Notre-Dame area, Latin Quarter
+- Day 4: Free museums and river walk
+
+Observation / Reflection:
+The AI prioritized free attractions and walking routes. Paid activities were minimized to match the budget constraint.

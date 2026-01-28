@@ -1,0 +1,12 @@
+Conversation #29
+Scenario: Changing hotel location
+
+User Input:
+- Initial AI-generated plan
+- User Change: New hotel area
+
+AI Output:
+- Adjusted routes and daily sequencing
+
+Observation / Reflection:
+The AI optimized travel flow based on updated location.

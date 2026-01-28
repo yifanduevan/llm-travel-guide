@@ -1,0 +1,12 @@
+Conversation #26
+Scenario: User adds an attraction manually
+
+User Input:
+- Initial AI-generated plan
+- User Action: Added custom attraction
+
+AI Output:
+- Rebalanced daily schedule
+
+Observation / Reflection:
+The AI demonstrated flexibility in integrating user edits.

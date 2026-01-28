@@ -1,0 +1,12 @@
+Conversation #25
+Scenario: Adding nightlife to a Seoul trip
+
+User Input:
+- Initial: Seoul, 3 days
+- User Feedback: “More nightlife”
+
+AI Output:
+- Added evening districts and entertainment options
+
+Observation / Reflection:
+The AI adjusted time allocation toward night activities.

@@ -1,0 +1,12 @@
+Conversation #21
+Scenario: Iterative planning for a busy Tokyo trip
+
+User Input:
+- Initial: Tokyo, 3 days, Medium
+- User Feedback: “The schedule is too busy”
+
+AI Output:
+- Revised itinerary with fewer activities per day
+
+Observation / Reflection:
+The AI responded to feedback by reducing density and increasing rest periods.

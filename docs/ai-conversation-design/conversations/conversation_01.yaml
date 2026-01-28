@@ -1,0 +1,18 @@
+Conversation #1
+Scenario: Standard couple trip to Tokyo
+
+User Input:
+- Destination: Tokyo
+- Duration: 3 days
+- Group: Couple
+- Budget: Medium
+- Interests: Food, Culture
+
+AI Output:
+- Day 1: Meiji Shrine, Harajuku lunch, Shibuya Crossing
+- Day 2: Asakusa, Ueno Park, Akihabara
+- Day 3: Tsukiji Market, teamLab Borderless, Ginza dinner
+
+Observation / Reflection:
+The AI generated a balanced itinerary combining cultural landmarks, food experiences, and popular city attractions. The pacing was moderate and suitable for a couple.
+

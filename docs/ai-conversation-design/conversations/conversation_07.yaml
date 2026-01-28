@@ -1,0 +1,17 @@
+Conversation #7
+Scenario: Luxury version of a Tokyo couple trip
+
+User Input:
+- Destination: Tokyo
+- Duration: 3 days
+- Group: Couple
+- Budget: Luxury
+- Interests: Food, Culture
+
+AI Output:
+- Day 1: Private guided tour at Meiji Shrine, upscale kaiseki dinner
+- Day 2: Asakusa cultural experience, Shibuya Sky, fine dining
+- Day 3: Michelin-star sushi, luxury shopping in Ginza
+
+Observation / Reflection:
+The AI upgraded accommodations, dining, and activities compared to the medium-budget version, demonstrating sensitivity to budget changes.

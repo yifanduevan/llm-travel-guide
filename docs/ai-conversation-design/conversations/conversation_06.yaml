@@ -1,0 +1,17 @@
+Conversation #6
+Scenario: Budget version of a Tokyo couple trip
+
+User Input:
+- Destination: Tokyo
+- Duration: 3 days
+- Group: Couple
+- Budget: Budget
+- Interests: Food, Culture
+
+AI Output:
+- Day 1: Meiji Shrine, convenience-store meals
+- Day 2: Asakusa, Ueno Park
+- Day 3: Free observation decks and street food
+
+Observation / Reflection:
+Compared to the medium-budget version, the AI replaced paid attractions with free alternatives and lower-cost dining options.

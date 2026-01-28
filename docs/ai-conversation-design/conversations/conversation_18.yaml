@@ -1,0 +1,16 @@
+Conversation #18
+Scenario: Family vacation to Orlando
+
+User Input:
+- Destination: Orlando
+- Duration: 5 days
+- Group: Family
+- Budget: Medium
+- Interests: Adventure
+
+AI Output:
+- Days 1–4: Theme parks
+- Day 5: Rest and shopping
+
+Observation / Reflection:
+The AI prioritized high-energy attractions while allowing recovery time at the end.

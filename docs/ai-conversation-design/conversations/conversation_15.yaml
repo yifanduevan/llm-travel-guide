@@ -1,0 +1,15 @@
+Conversation #15
+Scenario: Budget solo trip to Reykjavik
+
+User Input:
+- Destination: Reykjavik
+- Duration: 1 day
+- Group: Solo
+- Budget: Budget
+- Interests: Nature
+
+AI Output:
+- Day 1: City walk, harbor area, scenic viewpoints
+
+Observation / Reflection:
+The AI minimized transportation and costs while highlighting accessible natural scenery.

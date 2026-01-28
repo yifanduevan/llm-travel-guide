@@ -1,0 +1,16 @@
+Conversation #14
+Scenario: Luxury short getaway to Dubai
+
+User Input:
+- Destination: Dubai
+- Duration: 2 days
+- Group: Couple
+- Budget: Luxury
+- Interests: Shopping, Relaxation
+
+AI Output:
+- Day 1: Luxury mall shopping, desert safari
+- Day 2: Beach club and fine dining
+
+Observation / Reflection:
+The AI emphasized premium shopping and exclusive experiences, matching the luxury constraint.

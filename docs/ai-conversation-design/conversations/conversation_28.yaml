@@ -1,0 +1,12 @@
+Conversation #28
+Scenario: Extending trip duration
+
+User Input:
+- Initial: 3 days
+- User Change: 4 days
+
+AI Output:
+- Generated an additional day itinerary
+
+Observation / Reflection:
+The AI scaled the plan smoothly with increased duration.

@@ -1,0 +1,12 @@
+Conversation #22
+Scenario: Iterative food-focused Paris trip
+
+User Input:
+- Initial: Paris, 4 days, Budget
+- User Feedback: “Add more food experiences”
+
+AI Output:
+- Added markets and affordable food tours
+
+Observation / Reflection:
+The AI successfully integrated new preferences without exceeding budget constraints.

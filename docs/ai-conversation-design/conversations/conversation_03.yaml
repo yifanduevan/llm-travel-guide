@@ -1,0 +1,16 @@
+Conversation #3
+Scenario: Luxury short trip to New York with friends
+
+User Input:
+- Destination: New York
+- Duration: 2 days
+- Group: Friends
+- Budget: Luxury
+- Interests: Shopping, Nightlife
+
+AI Output:
+- Day 1: Fifth Avenue shopping, rooftop bar
+- Day 2: Broadway show, fine dining in Manhattan
+
+Observation / Reflection:
+The AI emphasized premium experiences and nightlife, showing sensitivity to both luxury budget and group type.

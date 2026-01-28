@@ -1,0 +1,12 @@
+Conversation #27
+Scenario: User deletes an activity
+
+User Input:
+- Initial AI-generated plan
+- User Action: Deleted one activity
+
+AI Output:
+- Filled gap with nearby alternative
+
+Observation / Reflection:
+The AI maintained itinerary continuity after user modification.

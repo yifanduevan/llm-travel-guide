@@ -1,0 +1,12 @@
+Conversation #23
+Scenario: Budget upgraded to luxury in New York
+
+User Input:
+- Initial: New York, 2 days, Budget
+- User Change: Budget → Luxury
+
+AI Output:
+- Replaced standard activities with premium experiences
+
+Observation / Reflection:
+The AI recalibrated recommendations to match the updated budget.

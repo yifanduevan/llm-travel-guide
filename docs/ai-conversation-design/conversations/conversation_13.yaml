@@ -1,0 +1,17 @@
+Conversation #13
+Scenario: Budget group trip to London
+
+User Input:
+- Destination: London
+- Duration: 3 days
+- Group: Large Group
+- Budget: Budget
+- Interests: History
+
+AI Output:
+- Day 1: British Museum and city walk
+- Day 2: Changing of the Guard, Hyde Park
+- Day 3: Free museums and markets
+
+Observation / Reflection:
+The AI selected free attractions and group-friendly activities to accommodate budget and group size.

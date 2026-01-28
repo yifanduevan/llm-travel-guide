@@ -1,0 +1,17 @@
+Conversation #17
+Scenario: Honeymoon trip to Venice
+
+User Input:
+- Destination: Venice
+- Duration: 3 days
+- Group: Couple
+- Budget: Luxury
+- Interests: Relaxation
+
+AI Output:
+- Day 1: Private gondola ride
+- Day 2: Leisure walks and fine dining
+- Day 3: Island excursion
+
+Observation / Reflection:
+The AI focused on romantic and relaxed experiences with minimal scheduling pressure.
