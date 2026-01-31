@@ -1,75 +1,118 @@
-# ECE 651 Project
+# ECE 651 - Trip Planner
 
 > **Course:** ECE 651 - Software Engineering  
 > **Term:** Winter 2026
 
 ## Overview
 
-*Brief description of your project goes here.*
+A full-stack trip planning application that helps users organize their travel itineraries. Users can create trips, manage accommodations, dining reservations, transportation, and activities all in one place.
 
-## Team Members
+## Features
 
-| Name | NetID | Role |
-|------|-------|------|
-| Member 1 | netid1 | TBD |
-| Member 2 | netid2 | TBD |
-| Member 3 | netid3 | TBD |
-| Member 4 | netid4 | TBD |
-| Member 5 | netid5 | TBD |
-| Member 6 | netid6 | TBD |
+- **Trip Management** - Create, edit, and track trips with dates, budget, and traveler info
+- **Itinerary Planning** - Organize daily activities and schedule
+- **Accommodations** - Track hotel bookings and lodging details
+- **Dining** - Manage restaurant reservations
+- **Transportation** - Plan flights, trains, and other transport segments
+- **Activities** - Keep track of tours, attractions, and things to do
 
 ## Tech Stack
 
-*To be decided*
-
-- **Language:** TBD
-- **Framework:** TBD
-- **Database:** TBD
-- **Testing:** TBD
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
+| **Backend** | Java 21, Spring Boot 3.3 |
+| **Database** | PostgreSQL |
+| **ORM** | Hibernate / JPA |
+| **Migrations** | Flyway |
 
 ## Project Structure
 
 ```
 ECE651/
-├── README.md
-├── docs/           # Documentation
-├── src/            # Source code
-├── tests/          # Test files
-└── ...
+├── src/
+│   ├── frontend/          # Next.js application
+│   │   ├── app/           # App router pages
+│   │   ├── features/      # Feature modules (trips, etc.)
+│   │   └── public/        # Static assets
+│   └── backend/           # Spring Boot application
+│       └── src/main/java/com/ece651/backend/
+│           ├── api/       # Controllers, DTOs, Mappers
+│           ├── domain/    # Entities, Enums, Converters
+│           ├── repository/# Data access layer
+│           └── config/    # Configuration
+├── docs/                  # Documentation
+└── tests/                 # Test files
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-*List prerequisites once tech stack is chosen (e.g., Python 3.10+, Node.js 18+, Java 17, etc.)*
+- **Java 21** (JDK)
+- **Node.js 18+** and npm
+- **PostgreSQL 15+**
+- **Maven 3.9+**
 
-### Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd ECE651
-
-# Install dependencies (update once tech stack is decided)
-# pip install -r requirements.txt   # Python
-# npm install                        # Node.js
-# ./gradlew build                    # Java/Gradle
-```
-
-### Running the Application
+### Database Setup
 
 ```bash
-# Add run commands here
+# Create the database
+psql -U postgres -c "CREATE USER ece651 WITH PASSWORD 'password';"
+psql -U postgres -c "CREATE DATABASE ece651 OWNER ece651;"
 ```
+
+### Backend Setup
+
+```bash
+cd src/backend
+
+# Build the project
+./mvnw clean install
+
+# Run the application
+./mvnw spring-boot:run
+```
+
+The backend will start on `http://localhost:8080`
+
+### Frontend Setup
+
+```bash
+cd src/frontend
+
+# Install dependencies
+npm install
+
+# Run the development server
+npm run dev
+```
+
+The frontend will start on `http://localhost:3000`
+
+### Environment Variables
+
+Create a `.env` file or set these environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_URL` | `jdbc:postgresql://127.0.0.1:5432/ece651` | Database connection URL |
+| `DB_USER` | `ece651` | Database username |
+| `DB_PASSWORD` | `password` | Database password |
+
+## Development
 
 ### Running Tests
 
 ```bash
-# Add test commands here
-```
+# Backend tests
+cd src/backend
+./mvnw test
 
-## Development
+# Frontend lint
+cd src/frontend
+npm run lint
+```
 
 ### Branch Strategy
 
@@ -82,21 +125,33 @@ cd ECE651
 
 Follow conventional commit format:
 ```
-type(scope): description
-
-feat: new feature
-fix: bug fix
-docs: documentation changes
-test: adding tests
-refactor: code refactoring
+feat: add new trip creation wizard
+fix: resolve date picker timezone issue
+docs: update API documentation
+test: add accommodation service tests
+refactor: extract trip validation logic
 ```
 
-## Documentation
+## API Endpoints
 
-- [Project Proposal](docs/proposal.md)
-- [Design Document](docs/design.md)
-- [API Documentation](docs/api.md)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/trips` | List all trips |
+| POST | `/api/trips` | Create a new trip |
+| GET | `/api/trips/{id}` | Get trip details |
+| PUT | `/api/trips/{id}` | Update a trip |
+| DELETE | `/api/trips/{id}` | Delete a trip |
+
+## Team Members
+
+| Name | Email | Phone |
+|------|-------|-------|
+| Zonghao Liu | z863liu@uwaterloo.ca | 548-990-7463 |
+| Yifan Du | y242du@uwaterloo.ca | 514-581-5112 |
+| Meng Dai | m44dai@uwaterloo.ca | 343-363-6930 |
+| Joey Lu | j375lu@uwaterloo.ca | 416-988-0019 |
+| Chenyu Wu | c374wu@uwaterloo.ca | 587-322-2258 |
 
 ## License
 
-This project is for educational purposes as part of ECE 651 coursework.
+This project is for educational purposes as part of ECE 651 coursework at the University of Waterloo.
