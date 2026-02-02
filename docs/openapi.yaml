@@ -1,0 +1,557 @@
+openapi: 3.0.3
+info:
+  title: ECE651 Travel Planner API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/trips:
+    get:
+      summary: List trips
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TripDto'
+    post:
+      summary: Create trip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDto'
+        '400':
+          description: Bad Request
+  /api/trips/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Get trip
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDto'
+        '404':
+          description: Not Found
+    put:
+      summary: Update trip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDto'
+        '404':
+          description: Not Found
+    delete:
+      summary: Delete trip
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+
+  /api/trips/{tripId}/accommodations:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: List accommodations for trip
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccommodationDto'
+        '404':
+          description: Not Found
+    post:
+      summary: Create accommodation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccommodationRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationDto'
+        '404':
+          description: Not Found
+  /api/trips/{tripId}/accommodations/{accommodationId}:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: accommodationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Update accommodation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccommodationRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccommodationDto'
+        '404':
+          description: Not Found
+    delete:
+      summary: Delete accommodation
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+
+  /api/trips/{tripId}/dining-reservations:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: List dining reservations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiningReservationDto'
+        '404':
+          description: Not Found
+    post:
+      summary: Create dining reservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiningReservationRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiningReservationDto'
+        '404':
+          description: Not Found
+  /api/trips/{tripId}/dining-reservations/{reservationId}:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: reservationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Update dining reservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiningReservationRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiningReservationDto'
+        '404':
+          description: Not Found
+    delete:
+      summary: Delete dining reservation
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+
+  /api/trips/{tripId}/transport-segments:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: List transport segments
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransportSegmentDto'
+        '404':
+          description: Not Found
+    post:
+      summary: Create transport segment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransportSegmentRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportSegmentDto'
+        '404':
+          description: Not Found
+  /api/trips/{tripId}/transport-segments/{segmentId}:
+    parameters:
+      - name: tripId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: segmentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Update transport segment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransportSegmentRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportSegmentDto'
+        '404':
+          description: Not Found
+    delete:
+      summary: Delete transport segment
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+
+components:
+  schemas:
+    TripDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        titleOrDestination:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        travelers:
+          type: string
+        budget:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TripRequest:
+      type: object
+      required: [titleOrDestination, travelers, budget, status]
+      properties:
+        titleOrDestination:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        travelers:
+          type: string
+        budget:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+    AccommodationDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+        roomType:
+          type: string
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        rate:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+        confirmationCode:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        imageUrl:
+          type: string
+        notes:
+          type: string
+    AccommodationRequest:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        roomType:
+          type: string
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        rate:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+        confirmationCode:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        imageUrl:
+          type: string
+        notes:
+          type: string
+    DiningReservationDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        time:
+          type: string
+          format: date-time
+        cuisine:
+          type: string
+        priceTier:
+          type: string
+        status:
+          type: string
+        address:
+          type: string
+        notes:
+          type: string
+        confirmationCode:
+          type: string
+        partySize:
+          type: integer
+        imageUrl:
+          type: string
+    DiningReservationRequest:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          type: string
+        time:
+          type: string
+          format: date-time
+        cuisine:
+          type: string
+        priceTier:
+          type: string
+        status:
+          type: string
+        address:
+          type: string
+        notes:
+          type: string
+        confirmationCode:
+          type: string
+        partySize:
+          type: integer
+        imageUrl:
+          type: string
+    TransportSegmentDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        startTz:
+          type: string
+        startLocation:
+          type: string
+        startCode:
+          type: string
+        endTime:
+          type: string
+          format: date-time
+        endTz:
+          type: string
+        endLocation:
+          type: string
+        endCode:
+          type: string
+        durationText:
+          type: string
+        status:
+          type: string
+        confirmationCode:
+          type: string
+        ticketUrl:
+          type: string
+        completed:
+          type: boolean
+        imageUrl:
+          type: string
+    TransportSegmentRequest:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        startTz:
+          type: string
+        startLocation:
+          type: string
+        startCode:
+          type: string
+        endTime:
+          type: string
+          format: date-time
+        endTz:
+          type: string
+        endLocation:
+          type: string
+        endCode:
+          type: string
+        durationText:
+          type: string
+        status:
+          type: string
+        confirmationCode:
+          type: string
+        ticketUrl:
+          type: string
+        completed:
+          type: boolean
+        imageUrl:
+          type: string

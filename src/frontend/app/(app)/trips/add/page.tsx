@@ -40,6 +40,17 @@ export default function AddTripPage() {
     };
   }, []);
 
+  // Close on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        router.push('/trips');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [router]);
+
   const selectedCount = useMemo(() => prefs.interests.length, [prefs.interests]);
 
   const toggleInterest = (interest: string) => {
@@ -65,7 +76,16 @@ export default function AddTripPage() {
 
   return (
     <div className="flex h-[calc(100vh-120px)] items-center justify-center overflow-hidden bg-slate-50 px-4">
-      <div className="w-full max-w-3xl translate-y-2 rounded-2xl bg-white p-8 shadow-xl sm:p-10">
+      <div className="w-full max-w-3xl translate-y-2 rounded-2xl bg-white p-8 shadow-xl sm:p-10 relative">
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={() => router.push('/trips')}
+          className="absolute right-4 top-4 rounded-full p-2 text-slate-600 hover:bg-slate-100 transition"
+        >
+          <span className="material-symbols-outlined">close</span>
+        </button>
+
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-900">
             <span className="material-symbols-outlined text-xl">auto_awesome</span>

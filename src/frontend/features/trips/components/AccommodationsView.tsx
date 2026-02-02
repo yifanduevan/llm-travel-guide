@@ -29,11 +29,9 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
       if (!tripId) return;
       try {
         setLoading(true);
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-        const res = await fetch(`${baseUrl}/api/trips/${tripId}/accommodations`);
-        if (!res.ok) return;
-        const data = (await res.json()) as Accommodation[];
-        setStays(data);
+        const { getAccommodations } = await import("@/features/trips/api");
+        const data = await getAccommodations(tripId);
+        setStays(data as unknown as Accommodation[]);
       } finally {
         setLoading(false);
       }
