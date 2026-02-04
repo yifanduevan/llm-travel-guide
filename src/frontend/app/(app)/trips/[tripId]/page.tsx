@@ -138,15 +138,14 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
       <div className="flex gap-3">
         <Link
           href={`?edit=true`}
-          className="rounded-lg bg-slate-900 px-4 py-2 transition hover:bg-slate-800"
-          style={{ color: '#e0e1e2' }}
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary"
         >
           Edit trip
         </Link>
         <Link
           href="/trips"
           className="rounded-lg border border-slate-400 px-4 py-2 transition hover:border-slate-900 hover:bg-slate-50"
-          style={{ color: '#242121' }}
+          style={{ color: '#5e5e5e' }}
         >
           Back to trips
         </Link>

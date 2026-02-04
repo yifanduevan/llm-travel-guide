@@ -2,10 +2,12 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import DateRangePicker from "@/features/trips/components/DateRangePicker";
 
 type UserPreferences = {
   destination: string;
-  duration: number;
+  startDate: string | null;
+  endDate: string | null;
   budget: "Budget" | "Medium" | "Luxury";
   interests: string[];
   travelers: "Solo" | "Couple" | "Family" | "Group";
@@ -25,7 +27,8 @@ export default function AddTripPage() {
   const router = useRouter();
   const [prefs, setPrefs] = useState<UserPreferences>({
     destination: "",
-    duration: 3,
+    startDate: null,
+    endDate: null,
     budget: "Medium",
     interests: [],
     travelers: "Couple",
@@ -53,6 +56,18 @@ export default function AddTripPage() {
 
   const selectedCount = useMemo(() => prefs.interests.length, [prefs.interests]);
 
+  // Validation: check if form can be submitted
+  const isFormValid = useMemo(() => {
+    const hasDestination = !!prefs.destination.trim();
+    const hasStartDate = !!prefs.startDate;
+    const hasEndDate = !!prefs.endDate;
+    
+    // For date comparison, use string comparison (YYYY-MM-DD format is lexicographically sortable)
+    const datesValid = hasStartDate && hasEndDate && prefs.endDate! >= prefs.startDate!;
+    
+    return hasDestination && hasStartDate && hasEndDate && datesValid;
+  }, [prefs]);
+
   const toggleInterest = (interest: string) => {
     setPrefs((prev) => ({
       ...prev,
@@ -64,10 +79,23 @@ export default function AddTripPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!prefs.destination) return;
+    if (!prefs.destination || !prefs.startDate) return;
 
     setIsGenerating(true);
-    // Placeholder: simulate trip creation, then go back to trips.
+    
+    // Prepare trip data payload with all required fields
+    const tripPayload = {
+      titleOrDestination: prefs.destination,
+      startDate: prefs.startDate,
+      endDate: prefs.endDate,
+      travelers: prefs.travelers,
+      budget: prefs.budget,
+      interests: prefs.interests,
+    };
+    
+    // Placeholder: simulate trip creation with payload
+    console.log("Creating trip with payload:", tripPayload);
+    
     setTimeout(() => {
       setIsGenerating(false);
       router.push("/trips");
@@ -116,27 +144,22 @@ export default function AddTripPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-                <span className="material-symbols-outlined text-base">calendar_month</span>
-                How long?
-              </label>
-              <select
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-                value={prefs.duration}
-                onChange={(e) =>
-                  setPrefs((prev) => ({ ...prev, duration: Number(e.target.value) }))
-                }
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 10, 14].map((d) => (
-                  <option key={d} value={d}>
-                    {d} Days
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+              <span className="material-symbols-outlined text-base">calendar_month</span>
+              When?
+            </label>
+            <DateRangePicker
+              startDate={prefs.startDate}
+              endDate={prefs.endDate}
+              onChange={(startDate, endDate) =>
+                setPrefs((prev) => ({ ...prev, startDate, endDate }))
+              }
+              placeholder="Select departure and return dates"
+            />
+          </div>
 
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
                 <span className="material-symbols-outlined text-base">group</span>
@@ -207,7 +230,7 @@ export default function AddTripPage() {
 
           <button
             type="submit"
-            disabled={isGenerating}
+            disabled={isGenerating || !isFormValid}
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isGenerating ? (

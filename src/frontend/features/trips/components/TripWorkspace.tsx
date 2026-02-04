@@ -139,7 +139,7 @@ export default function TripWorkspace({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <p className="text-sm font-semibold uppercase text-slate-500">
+        <p className="text-sm font-semibold uppercase text-black">
           {editable ? "Edit trip" : "Trip view"}
         </p>
         <h1 className="text-3xl font-semibold text-slate-900">

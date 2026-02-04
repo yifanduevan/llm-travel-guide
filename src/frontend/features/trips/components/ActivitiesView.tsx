@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getActivities } from "@/features/trips/api";
+import type { ActivityDto } from "@/lib/types";
 
 type TripInfo = {
   titleOrDestination?: string;
@@ -36,16 +37,16 @@ export default function ActivitiesView({ trip, tripId, activities }: Props) {
   const [activityState, setActivityState] = useState<ActivityItem[]>(initial);
   const [loading, setLoading] = useState(false);
 
-  function mapActivityDto(api: any): ActivityItem {
+  function mapActivityDto(api: ActivityDto): ActivityItem {
     return {
-      title: api.title || "",
-      price: api.price || "",
-      rating: api.rating || "",
-      badge: api.badge ?? null,
-      badgeTone: api.badgeTone ?? null,
-      image: api.imageUrl || api.image || null,
-      description: api.description || null,
-      pills: api.pills || [],
+      title: (api.title as string) || "",
+      price: (api.price as string) || "",
+      rating: (api.rating as string) || "",
+      badge: (api.badge as string | null) ?? null,
+      badgeTone: (api.badgeTone as string | null) ?? null,
+      image: (api.imageUrl as string | null) ?? null,
+      description: ((api.description as string | null) || null) ?? null,
+      pills: (api.pills as string[]) || [],
     };
   }
 
@@ -86,7 +87,7 @@ export default function ActivitiesView({ trip, tripId, activities }: Props) {
                 <span className="material-symbols-outlined text-lg">format_list_bulleted</span>
               </button>
             </div>
-            <button className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+            <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
               <span className="material-symbols-outlined text-lg">add_location_alt</span>
               Find new tour
             </button>
@@ -102,7 +103,7 @@ export default function ActivitiesView({ trip, tripId, activities }: Props) {
             {activityState.map((activity) => (
               <div
                 key={activity.title}
-                className="group flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-300 hover:shadow-xl"
+                className="group flex flex-col overflow-hidden rounded-2xl border-white bg-white shadow-sm transition duration-300 hover:shadow-xl"
               >
                 <div className="relative h-64 w-full overflow-hidden">
                   <div

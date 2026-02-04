@@ -177,7 +177,7 @@ export const mockActivities = [
     badge: 'Popular',
     badgeTone: 'primary',
     imageUrl:
-      'https://images.unsplash.com/photo-1542731404-31945a60a2a6?auto=format&fit=crop&w=800&q=80',
+      'https://imgs.gotrip.hk/wp-content/uploads/2020/10/65_18625544735f99bd2eb50ac.jpg',
     description:
       'Discover authentic Tokyo flavors with local guides through traditional markets and hidden gems.',
     pills: ['4 Hours', 'English / Japanese', 'Food Inc.'],
@@ -188,7 +188,7 @@ export const mockActivities = [
     price: '¥2,000',
     rating: '4.6',
     imageUrl:
-      'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
+      'https://media.timeout.com/images/105547051/1920/1080/image.webp',
     description: 'Experience breathtaking panoramic views of Tokyo from the famous Shibuya Sky.',
     pills: ['1 Hour', 'Mobile Ticket'],
   },

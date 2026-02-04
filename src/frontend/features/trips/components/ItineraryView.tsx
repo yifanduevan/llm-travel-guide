@@ -141,12 +141,13 @@ export default function ItineraryView({ editable = false, trip }: ItineraryViewP
             </h2>
             <p className="mt-1 text-sm text-slate-600">{dates}</p>
           </div>
-          <button className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
-            <span className="material-symbols-outlined text-lg">
-              edit_calendar
-            </span>
-            {editable ? "Edit dates" : "View dates"}
-          </button>
+          <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
+  <span className="material-symbols-outlined text-lg">
+    edit_calendar
+  </span>
+  {editable ? "Edit dates" : "View dates"}
+</button>
+
         </div>
            
 
@@ -158,7 +159,7 @@ export default function ItineraryView({ editable = false, trip }: ItineraryViewP
                   className={`h-5 w-5 rounded-full border-4 ${
                     day.active
                       ? "bg-slate-900 border-white"
-                      : "bg-white border-slate-200"
+                      : "bg-white border-white"
                   }`}
                 />
               </div>
@@ -174,7 +175,7 @@ export default function ItineraryView({ editable = false, trip }: ItineraryViewP
                 {day.items.map((item) => (
                   <div
                     key={item.title}
-                    className={`flex gap-4 rounded-2xl border bg-white p-5 shadow-sm transition hover:shadow-md ${
+                    className={`flex gap-4 rounded-2xl border-white bg-white p-5 shadow-sm transition hover:shadow-md ${
                       item.muted ? "opacity-70" : ""
                     }`}
                   >

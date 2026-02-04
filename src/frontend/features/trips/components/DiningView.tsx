@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DiningReservation } from "./TripWorkspace";
 import { getDiningReservations } from "@/features/trips/api";
+import type { DiningReservationDto } from "@/lib/types";
 
 type TripInfo = {
   titleOrDestination?: string;
@@ -28,19 +29,19 @@ export default function DiningView({ trip, tripId, reservations }: Props) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Map API DTO to internal DiningReservation type (ensure required fields)
-  function mapDiningReservationDto(apiRes: any): DiningReservation {
+  function mapDiningReservationDto(apiRes: DiningReservationDto): DiningReservation {
     return {
-      id: apiRes.id || "",
-      name: apiRes.name || "",
-      time: apiRes.time || null,
-      cuisine: apiRes.cuisine || null,
-      priceTier: apiRes.priceTier || null,
-      status: apiRes.status || "",
-      address: apiRes.address || null,
-      notes: apiRes.notes || null,
-      confirmationCode: apiRes.confirmationCode || null,
-      partySize: apiRes.partySize ?? null,
-      imageUrl: apiRes.imageUrl || null,
+      id: (apiRes.id as string) || "",
+      name: (apiRes.name as string) || "",
+      time: (apiRes.time as string | null) || null,
+      cuisine: (apiRes.cuisine as string | null) || null,
+      priceTier: (apiRes.priceTier as string | null) || null,
+      status: (apiRes.status as string) || "",
+      address: (apiRes.address as string | null) || null,
+      notes: (apiRes.notes as string | null) || null,
+      confirmationCode: (apiRes.confirmationCode as string | null) || null,
+      partySize: (apiRes.partySize as number | null) ?? null,
+      imageUrl: (apiRes.imageUrl as string | null) || null,
     };
   }
 
@@ -91,7 +92,7 @@ export default function DiningView({ trip, tripId, reservations }: Props) {
                 <span className="material-symbols-outlined text-lg">format_list_bulleted</span>
               </button>
             </div>
-            <button className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+            <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
               <span className="material-symbols-outlined text-lg">add</span>
               Add reservation
             </button>
@@ -112,7 +113,7 @@ export default function DiningView({ trip, tripId, reservations }: Props) {
               {reservationState.map((reservation) => (
                 <div
                   key={reservation.id}
-                  className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-300 hover:shadow-xl"
+                  className="group overflow-hidden rounded-2xl border-white bg-white shadow-sm transition duration-300 hover:shadow-xl"
                 >
                   <div className="relative h-56 w-full overflow-hidden">
                     <div
@@ -177,16 +178,18 @@ export default function DiningView({ trip, tripId, reservations }: Props) {
           ) : (
             <div className="flex flex-col gap-4">
               {reservationState.map((reservation) => (
-                <div key={reservation.id} className="flex items-start gap-4 rounded-lg border bg-white p-4">
-                  <div className="h-24 w-24 flex-shrink-0 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url('${reservation.imageUrl ?? ""}')` }} />
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <h3 className="text-lg font-semibold text-slate-900">{reservation.name}</h3>
-                      <span className="text-sm font-medium text-slate-600">{reservation.priceTier ?? ""}</span>
+                <div key={reservation.id} className="group overflow-hidden rounded-lg border-white bg-white p-4 shadow-sm transition duration-300 hover:shadow-xl">
+                  <div className="flex items-start gap-4">
+                    <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style={{ backgroundImage: `url('${reservation.imageUrl ?? ""}')` }} />
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <h3 className="text-lg font-semibold text-slate-900">{reservation.name}</h3>
+                        <span className="text-sm font-medium text-slate-600">{reservation.priceTier ?? ""}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-slate-600">{formatTime(reservation.time)}{reservation.cuisine ? ` • ${reservation.cuisine}` : ''}</p>
+                      <p className="mt-2 text-sm text-slate-700">{reservation.notes || "No notes"}</p>
+                      <div className="mt-2 text-xs text-slate-600">Confirmation: {reservation.confirmationCode ?? "—"}</div>
                     </div>
-                    <p className="mt-1 text-sm text-slate-600">{formatTime(reservation.time)}{reservation.cuisine ? ` • ${reservation.cuisine}` : ''}</p>
-                    <p className="mt-2 text-sm text-slate-700">{reservation.notes || "No notes"}</p>
-                    <div className="mt-2 text-xs text-slate-600">Confirmation: {reservation.confirmationCode ?? "—"}</div>
                   </div>
                 </div>
               ))}
