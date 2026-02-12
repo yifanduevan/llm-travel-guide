@@ -1,0 +1,21 @@
+Conversation #19
+Scenario: Spring tulip season in Amsterdam
+
+User Input:
+- Destination: Amsterdam
+- Start Date: April 18, 2026
+- End Date: April 21, 2026
+- Group: Couple
+- Budget: Medium
+- Interests: Nature, Photography
+
+AI Output:
+Season: Tulip Bloom Season
+
+Day 1 – Keukenhof Gardens
+Day 2 – Canal District
+Transportation: Train to Lisse + central walking route
+Seasonal Highlight: Peak tulip bloom
+
+Observation:
+AI correctly incorporated seasonal flower events and minimized backtracking between districts.

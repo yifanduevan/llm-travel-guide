@@ -1,0 +1,21 @@
+Conversation #20
+Scenario: Golden Week congestion handling in Tokyo
+
+User Input:
+- Destination: Tokyo
+- Start Date: May 2, 2026
+- End Date: May 6, 2026
+- Group: Family
+- Budget: Medium
+- Interests: Culture
+
+AI Output:
+Season: Golden Week (High Domestic Travel)
+
+Day clusters focused on less crowded neighborhoods.
+Suggested early morning temple visits.
+Transportation: Avoid peak commuter times
+Seasonal Highlight: National holiday awareness
+
+Observation:
+AI demonstrated crowd-awareness and adjusted scheduling to avoid congestion.

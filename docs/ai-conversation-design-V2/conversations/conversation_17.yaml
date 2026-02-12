@@ -1,0 +1,22 @@
+Conversation #17
+Scenario: Fall wine harvest trip to Tuscany
+
+User Input:
+- Destination: Florence
+- Start Date: October 3, 2026
+- End Date: October 7, 2026
+- Group: Couple
+- Budget: Luxury
+- Interests: Wine, Countryside
+
+AI Output:
+Season: Harvest Season (Autumn)
+
+Day 1 – Florence Historic Center
+Day 2 – Chianti Wine Route
+Day 3 – Siena Day Trip
+Transportation: Rental car optimized for countryside routing
+Seasonal Highlight: Grape harvest experiences
+
+Observation:
+AI incorporated seasonal wine events and optimized routes for rural Google Maps navigation.

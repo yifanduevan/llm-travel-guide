@@ -1,0 +1,23 @@
+Conversation #2
+Scenario: Summer cultural trip to Kyoto
+
+User Input:
+- Destination: Kyoto
+- Start Date: July 10, 2026
+- End Date: July 14, 2026
+- Group: Couple
+- Budget: Medium
+- Interests: Culture, Food
+
+AI Output:
+Season: Summer
+
+Day 1 – Higashiyama District
+- Morning: Kiyomizu-dera
+- Afternoon: Gion District
+- Evening: Kamogawa riverside dining
+- Transportation: Local bus + walking
+- Seasonal Highlight: Gion Matsuri Festival
+
+Observation:
+The AI integrated seasonal festival events and suggested shaded walking routes due to summer heat.

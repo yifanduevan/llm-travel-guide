@@ -1,0 +1,16 @@
+Conversation #13
+Scenario: New York map-optimized walking itinerary
+
+User Input:
+- Destination: New York
+- Start Date: May 10, 2026
+- End Date: May 12, 2026
+
+AI Output:
+Day 1 – Lower Manhattan cluster
+Day 2 – Midtown cluster
+Transportation suggestions included
+
+Observation:
+AI minimized subway transfers and grouped locations by proximity.
+

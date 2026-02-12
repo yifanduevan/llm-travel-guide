@@ -1,0 +1,21 @@
+Conversation #25
+Scenario: Heatwave adaptation in Madrid
+
+User Input:
+- Destination: Madrid
+- Start Date: August 15, 2026
+- End Date: August 18, 2026
+- Group: Couple
+- Budget: Medium
+- Interests: Culture
+
+AI Output:
+Season: Extreme Summer Heat
+
+Morning outdoor tours.
+Afternoon indoor museums.
+Evening tapas crawl.
+Transportation: Metro Line 1 & 2
+
+Observation:
+AI structured day around temperature fluctuations.

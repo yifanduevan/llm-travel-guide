@@ -1,0 +1,22 @@
+Conversation #23
+Scenario: Winter indoor museum cluster in London
+
+User Input:
+- Destination: London
+- Start Date: January 5, 2026
+- End Date: January 8, 2026
+- Group: Solo
+- Budget: Budget
+- Interests: History
+
+AI Output:
+Season: Winter
+
+Day 1 – South Kensington cluster
+- Natural History Museum
+- Science Museum
+- V&A Museum
+Transportation: Walking cluster
+
+Observation:
+AI prioritized indoor attractions and clustered them within walking distance.

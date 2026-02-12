@@ -1,0 +1,20 @@
+Conversation #9
+Scenario: Family summer trip to Orlando
+
+User Input:
+- Destination: Orlando
+- Start Date: July 20, 2026
+- End Date: July 25, 2026
+- Group: Family
+- Budget: Medium
+- Interests: Adventure
+
+AI Output:
+Season: Summer
+
+Theme parks scheduled with mid-day breaks.
+Evening indoor activities to avoid heat.
+
+Observation:
+AI adapted schedule intensity to summer weather and child-friendly pacing.
+

@@ -1,0 +1,16 @@
+Conversation #11
+Scenario: Tokyo spring trip adjusted for rain forecast
+
+User Input:
+- Destination: Tokyo
+- Start Date: April 5, 2026
+- End Date: April 8, 2026
+
+User Feedback:
+"Forecast shows rain on Day 2"
+
+AI Output:
+Replaced park visit with teamLab Planets (indoor attraction)
+
+Observation:
+AI adapted seasonal planning dynamically based on weather.
