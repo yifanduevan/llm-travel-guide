@@ -1,20 +1,27 @@
 import Link from "next/link";
+import { getTrips } from "@/features/trips/api";
+import { TripDto } from "@/lib/types";
 
-type TripDto = {
+type LocalTripDto = {
   id: string;
   titleOrDestination: string;
   startDate: string | null;
   endDate: string | null;
 };
 
-async function fetchTrips(): Promise<TripDto[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+function mapTripDto(apiTrip: TripDto): LocalTripDto {
+  return {
+    id: apiTrip.id || '',
+    titleOrDestination: apiTrip.titleOrDestination || '',
+    startDate: apiTrip.startDate || null,
+    endDate: apiTrip.endDate || null,
+  };
+}
+
+async function fetchTrips(): Promise<LocalTripDto[]> {
   try {
-    const res = await fetch(`${baseUrl}/api/trips`, { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error(`Failed to load trips: ${res.status}`);
-    }
-    return (await res.json()) as TripDto[];
+    const apiTrips = await getTrips();
+    return apiTrips.map(mapTripDto);
   } catch (err) {
     console.error(err);
     return [];
@@ -78,3 +85,4 @@ export default async function TripsPage() {
     </section>
   );
 }
+

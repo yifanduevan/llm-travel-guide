@@ -1,0 +1,195 @@
+import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from '../../lib/types';
+
+export const mockTrips: TripDto[] = [
+  {
+    id: '1',
+    titleOrDestination: 'Paris Trip',
+    startDate: '2023-06-01',
+    endDate: '2023-06-10',
+    travelers: '2 adults',
+    budget: 'medium',
+    notes: 'Exciting trip to Paris',
+    status: 'planned',
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z',
+  },
+  {
+    id: '2',
+    titleOrDestination: 'Tokyo Adventure',
+    startDate: '2023-07-01',
+    endDate: '2023-07-15',
+    travelers: '1 adult',
+    budget: 'high',
+    notes: 'Explore Tokyo',
+    status: 'confirmed',
+    createdAt: '2023-02-01T00:00:00Z',
+    updatedAt: '2023-02-01T00:00:00Z',
+  },
+];
+
+export const mockTrip: TripDto = mockTrips[0];
+
+export const mockAccommodations: AccommodationDto[] = [
+  {
+    id: '1',
+    name: 'Hotel Paris',
+    address: '123 Rue de Paris',
+    roomType: 'Double',
+    checkIn: '2023-06-01',
+    checkOut: '2023-06-10',
+    rate: 150,
+    currency: 'EUR',
+    status: 'confirmed',
+    confirmationCode: 'ABC123',
+    tags: ['luxury', 'city center'],
+    imageUrl: 'https://example.com/hotel.jpg',
+    notes: 'Great location',
+  },
+  {
+    id: '2',
+    name: 'Tokyo Hotel',
+    address: '456 Shibuya Street, Tokyo',
+    roomType: 'Single',
+    checkIn: '2023-07-01',
+    checkOut: '2023-07-15',
+    rate: 12000,
+    currency: 'JPY',
+    status: 'confirmed',
+    confirmationCode: 'XYZ789',
+    tags: ['modern', 'subway access'],
+    imageUrl: 'https://example.com/tokyo-hotel.jpg',
+    notes: 'Convenient for exploring Tokyo',
+  },
+];
+
+export const mockDiningReservations: DiningReservationDto[] = [
+  {
+    id: '1',
+    name: 'Le Gourmet',
+    time: '2023-06-05T19:00:00Z',
+    cuisine: 'French',
+    priceTier: 'high',
+    status: 'confirmed',
+    address: '456 Avenue Gourmet',
+    notes: 'Reservation for 2',
+    confirmationCode: 'DEF456',
+    partySize: 2,
+    imageUrl: 'https://example.com/restaurant.jpg',
+  },
+  {
+    id: '2',
+    name: 'Sushi Zen',
+    time: '2023-07-08T20:00:00Z',
+    cuisine: 'Japanese',
+    priceTier: 'medium',
+    status: 'confirmed',
+    address: '789 Ginza District, Tokyo',
+    notes: 'Authentic sushi experience',
+    confirmationCode: 'JKL012',
+    partySize: 1,
+    imageUrl: 'https://example.com/sushi.jpg',
+  },
+];
+
+export const mockTransportSegments: TransportSegmentDto[] = [
+  {
+    id: '1',
+    type: 'flight',
+    title: 'Flight to Paris',
+    startTime: '2023-06-01T10:00:00Z',
+    startTz: 'UTC',
+    startLocation: 'New York',
+    startCode: 'JFK',
+    endTime: '2023-06-01T22:00:00Z',
+    endTz: 'UTC',
+    endLocation: 'Paris',
+    endCode: 'CDG',
+    durationText: '12 hours',
+    status: 'confirmed',
+    confirmationCode: 'GHI789',
+    ticketUrl: 'https://example.com/ticket',
+    completed: false,
+    imageUrl: 'https://example.com/flight.jpg',
+  },
+  {
+    id: '2',
+    type: 'flight',
+    title: 'Flight to Tokyo',
+    startTime: '2023-07-01T14:00:00Z',
+    startTz: 'UTC',
+    startLocation: 'Los Angeles',
+    startCode: 'LAX',
+    endTime: '2023-07-02T18:00:00Z',
+    endTz: 'UTC',
+    endLocation: 'Tokyo',
+    endCode: 'NRT',
+    durationText: '11 hours',
+    status: 'confirmed',
+    confirmationCode: 'MNO345',
+    ticketUrl: 'https://example.com/tokyo-ticket',
+    completed: false,
+    imageUrl: 'https://example.com/tokyo-flight.jpg',
+  },
+];
+
+export const mockActivities = [
+  {
+    id: '1',
+    title: 'Louvre Museum Masterpieces Tour',
+    price: '€75',
+    rating: '4.9',
+    badge: 'Top Rated',
+    badgeTone: 'primary',
+    imageUrl:
+      'https://images.unsplash.com/photo-1543349689-9a4d426bee8d?auto=format&fit=crop&w=800&q=80',
+    description:
+      'Skip-the-line guided tour featuring the Mona Lisa, Venus de Milo, and more with a certified art historian.',
+    pills: ['3 Hours', 'English / French', 'Mobile Ticket'],
+  },
+  {
+    id: '1',
+    title: 'Seine River Sunset Cruise',
+    price: '€25',
+    rating: '4.7',
+    badge: 'Selling Fast',
+    badgeTone: 'accent',
+    imageUrl:
+      'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
+    description: 'Enjoy panoramic views of Paris monuments at dusk with audio commentary.',
+    pills: ['1 Hour', 'Audio Guide'],
+  },
+  {
+    id: '1',
+    title: 'Montmartre Cheese & Wine',
+    price: '€95',
+    rating: '5.0',
+    imageUrl:
+      'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80',
+    description:
+      'Walking tour through the historic artist district with four tasting stops for local delicacies.',
+    pills: ['3.5 Hours', 'Food Inc.'],
+  },
+  {
+    id: '2',
+    title: 'Tokyo Food Tour',
+    price: '¥8,500',
+    rating: '4.8',
+    badge: 'Popular',
+    badgeTone: 'primary',
+    imageUrl:
+      'https://imgs.gotrip.hk/wp-content/uploads/2020/10/65_18625544735f99bd2eb50ac.jpg',
+    description:
+      'Discover authentic Tokyo flavors with local guides through traditional markets and hidden gems.',
+    pills: ['4 Hours', 'English / Japanese', 'Food Inc.'],
+  },
+  {
+    id: '2',
+    title: 'Shibuya Sky Observation',
+    price: '¥2,000',
+    rating: '4.6',
+    imageUrl:
+      'https://media.timeout.com/images/105547051/1920/1080/image.webp',
+    description: 'Experience breathtaking panoramic views of Tokyo from the famous Shibuya Sky.',
+    pills: ['1 Hour', 'Mobile Ticket'],
+  },
+];

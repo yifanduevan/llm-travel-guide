@@ -10,10 +10,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/trips" className="text-lg font-semibold text-slate-900">
+          <Link href="/trips" className="flex gap-3 text-lg font-semibold">
             Trip Planner
           </Link>
-          <nav className="flex gap-3 text-sm font-medium text-slate-700">
+          <nav className="flex gap-3 text-sm font-medium text-black">
             <Link
               href="/trips"
               className="rounded-md px-3 py-2 transition hover:bg-slate-100"
