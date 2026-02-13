@@ -99,6 +99,8 @@ Create a `.env` file or set these environment variables:
 | `DB_URL` | `jdbc:postgresql://127.0.0.1:5432/ece651` | Database connection URL |
 | `DB_USER` | `ece651` | Database username |
 | `DB_PASSWORD` | `password` | Database password |
+| `LLM_API_KEY` | (required for AI) | OpenAI API key for itinerary generation |
+| `LLM_MODEL` | `gpt-4o-mini` | OpenAI model (e.g. gpt-4o, gpt-4o-mini) |
 
 ## Development
 
@@ -141,6 +143,7 @@ refactor: extract trip validation logic
 | GET | `/api/trips/{id}` | Get trip details |
 | PUT | `/api/trips/{id}` | Update a trip |
 | DELETE | `/api/trips/{id}` | Delete a trip |
+| POST | `/api/trips/{id}/generate-itinerary` | Generate AI itinerary (requires `LLM_API_KEY`) |
 
 ## Team Members
 
