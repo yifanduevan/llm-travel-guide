@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import TabNavigation from "./TabNavigation";
 import ItineraryView from "./ItineraryView";
 import DiningView from "./DiningView";
@@ -77,8 +78,12 @@ export default function TripWorkspace({
   editable = false,
 }: TripWorkspaceProps) {
   const [currentView, setCurrentView] = useState<ViewName>("itinerary");
+  const searchParams = useSearchParams();
+  const urlEdit = searchParams?.get("edit") === "true";
 
-  const heading = trip?.titleOrDestination ?? tripId;
+  const isEditable = editable || urlEdit;
+
+  const heading = trip?.titleOrDestination && trip.titleOrDestination.trim() !== "" ? trip.titleOrDestination : tripId;
   const dateRange =
     trip?.startDate && trip?.endDate
       ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(
@@ -89,7 +94,7 @@ export default function TripWorkspace({
   const viewContent = useMemo(() => {
     switch (currentView) {
       case "itinerary":
-        return <ItineraryView editable={editable} trip={trip} />;
+        return <ItineraryView editable={isEditable} trip={trip} />;
       case "dining":
         return (
           <DiningView
@@ -111,7 +116,7 @@ export default function TripWorkspace({
           />
         );
       case "activities":
-        return <ActivitiesView trip={trip} />;
+        return <ActivitiesView trip={trip} tripId={tripId} />;
       default:
         return (
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -134,7 +139,7 @@ export default function TripWorkspace({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <p className="text-sm font-semibold uppercase text-slate-500">
+        <p className="text-sm font-semibold uppercase text-black">
           {editable ? "Edit trip" : "Trip view"}
         </p>
         <h1 className="text-3xl font-semibold text-slate-900">
