@@ -124,6 +124,158 @@ export default function DiningView({ trip, tripId, reservations }: Props) {
 
   const header = trip?.titleOrDestination ?? "Gastronomy";
 
+  const renderReservations = () => {
+    if (noData && !loading) {
+      return (
+        <p className="text-sm text-slate-600">
+          No dining reservations found for this trip.
+        </p>
+      );
+    }
+
+    if (viewMode === "grid") {
+      return (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-2">
+          {reservationState.map((reservation) => (
+            <div
+              key={reservation.id}
+              className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-300 hover:shadow-xl"
+            >
+              <div className="relative h-56 w-full overflow-hidden">
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                  style={{
+                    backgroundImage: `url('${reservation.imageUrl ?? ""}')`,
+                  }}
+                />
+                <div className="absolute right-4 top-4 flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-900 backdrop-blur-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
+                    {reservation.status}
+                  </div>
+                  <button
+                    onClick={() => setConfirmTarget(reservation)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-700 transition hover:bg-white"
+                    title="Delete reservation"
+                    disabled={deletingId === reservation.id}
+                  >
+                    {deletingId === reservation.id ? (
+                      <span className="material-symbols-outlined animate-spin text-base">
+                        progress_activity
+                      </span>
+                    ) : (
+                      <span className="material-symbols-outlined text-base">
+                        delete
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="mb-2 flex items-start justify-between">
+                  <h3 className="text-xl font-semibold text-slate-900">
+                    {reservation.name}
+                  </h3>
+                  <span className="text-sm font-medium text-slate-600">
+                    {reservation.priceTier ?? ""}
+                  </span>
+                </div>
+                <div className="mb-4 flex flex-wrap gap-4 text-xs font-medium text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm">
+                      schedule
+                    </span>
+                    {formatTime(reservation.time)}
+                  </div>
+                  {reservation.cuisine && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm">
+                        restaurant_menu
+                      </span>
+                      {reservation.cuisine}
+                    </div>
+                  )}
+                  {reservation.partySize && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm">
+                        group
+                      </span>
+                      {reservation.partySize} guests
+                    </div>
+                  )}
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-tight text-slate-900">
+                    Notes
+                  </label>
+                  <p className="text-sm text-slate-700">
+                    {reservation.notes || "No notes"}
+                  </p>
+                </div>
+                <div className="mt-3 text-xs text-slate-600">
+                  Confirmation: {reservation.confirmationCode ?? "—"}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-4">
+        {reservationState.map((reservation) => (
+          <div
+            key={reservation.id}
+            className="group overflow-hidden rounded-lg border bg-white p-4 shadow-sm transition duration-300 hover:shadow-xl"
+          >
+            <div className="flex items-start gap-4">
+              <div
+                className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                style={{ backgroundImage: `url('${reservation.imageUrl ?? ""}')` }}
+              />
+              <div className="flex-1">
+                <div className="flex items-start justify-between">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    {reservation.name}
+                  </h3>
+                  <span className="text-sm font-medium text-slate-600">
+                    {reservation.priceTier ?? ""}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  {formatTime(reservation.time)}
+                  {reservation.cuisine ? ` • ${reservation.cuisine}` : ""}
+                </p>
+                <p className="mt-2 text-sm text-slate-700">
+                  {reservation.notes || "No notes"}
+                </p>
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-600">
+                  <span>Confirmation: {reservation.confirmationCode ?? "—"}</span>
+                  <button
+                    onClick={() => setConfirmTarget(reservation)}
+                    className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100"
+                    title="Delete reservation"
+                    disabled={deletingId === reservation.id}
+                  >
+                    {deletingId === reservation.id ? (
+                      <span className="material-symbols-outlined animate-spin text-sm">
+                        progress_activity
+                      </span>
+                    ) : (
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+
   const handleDelete = async (reservationId: string) => {
     if (!tripId || !reservationId) return;
     setDeletingId(reservationId);
@@ -229,143 +381,8 @@ export default function DiningView({ trip, tripId, reservations }: Props) {
           <p className="text-sm text-slate-600">Loading reservations...</p>
         )}
 
-        {noData && !loading ? (
-          <p className="text-sm text-slate-600">
-            No dining reservations found for this trip.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-2">
-            {reservationState.map((reservation) => (
-              <div
-                key={reservation.id}
-                className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-300 hover:shadow-xl"
-              >
-                <div className="relative h-56 w-full overflow-hidden">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                    style={{
-                      backgroundImage: `url('${reservation.imageUrl ?? ""}')`,
-                    }}
-                  />
-                  <div className="absolute right-4 top-4 flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-900 backdrop-blur-sm">
-                      <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
-                      {reservation.status}
-                    </div>
-                    <button
-                      onClick={() => setConfirmTarget(reservation)}
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-700 transition hover:bg-white"
-                      title="Delete reservation"
-                      disabled={deletingId === reservation.id}
-                    >
-                      {deletingId === reservation.id ? (
-                        <span className="material-symbols-outlined animate-spin text-base">
-                          progress_activity
-                        </span>
-                      ) : (
-                        <span className="material-symbols-outlined text-base">
-                          delete
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="mb-2 flex items-start justify-between">
-                    <h3 className="text-xl font-semibold text-slate-900">
-                      {reservation.name}
-                    </h3>
-                    <span className="text-sm font-medium text-slate-600">
-                      {reservation.priceTier ?? ""}
-                    </span>
-          viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-2">
-              {reservationState.map((reservation) => (
-                <div
-                  key={reservation.id}
-                  className="group overflow-hidden rounded-2xl border-white bg-white shadow-sm transition duration-300 hover:shadow-xl"
-                >
-                  <div className="relative h-56 w-full overflow-hidden">
-                    <div
-                      className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                      style={{
-                        backgroundImage: `url('${reservation.imageUrl ?? ""}')`,
-                      }}
-                    />
-                    <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-900 backdrop-blur-sm">
-                      <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
-                      {reservation.status}
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="mb-2 flex items-start justify-between">
-                      <h3 className="text-xl font-semibold text-slate-900">
-                        {reservation.name}
-                      </h3>
-                      <span className="text-sm font-medium text-slate-600">
-                        {reservation.priceTier ?? ""}
-                      </span>
-                    </div>
-                    <div className="mb-4 flex flex-wrap gap-4 text-xs font-medium text-slate-600">
-                      <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-sm">
-                          schedule
-                        </span>
-                        {formatTime(reservation.time)}
-                      </div>
-                      {reservation.cuisine && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-sm">
-                            restaurant_menu
-                          </span>
-                          {reservation.cuisine}
-                        </div>
-                      )}
-                      {reservation.partySize && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-sm">
-                            group
-                          </span>
-                          {reservation.partySize} guests
-                        </div>
-                      )}
-                    </div>
-                    <div className="rounded-lg bg-slate-50 p-3">
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-tight text-slate-900">
-                        Notes
-                      </label>
-                      <p className="text-sm text-slate-700">
-                        {reservation.notes || "No notes"}
-                      </p>
-                    </div>
-                    <div className="mt-3 text-xs text-slate-600">
-                      Confirmation: {reservation.confirmationCode ?? "—"}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {reservationState.map((reservation) => (
-                <div key={reservation.id} className="group overflow-hidden rounded-lg border-white bg-white p-4 shadow-sm transition duration-300 hover:shadow-xl">
-                  <div className="flex items-start gap-4">
-                    <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style={{ backgroundImage: `url('${reservation.imageUrl ?? ""}')` }} />
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <h3 className="text-lg font-semibold text-slate-900">{reservation.name}</h3>
-                        <span className="text-sm font-medium text-slate-600">{reservation.priceTier ?? ""}</span>
-                      </div>
-                      <p className="mt-1 text-sm text-slate-600">{formatTime(reservation.time)}{reservation.cuisine ? ` • ${reservation.cuisine}` : ''}</p>
-                      <p className="mt-2 text-sm text-slate-700">{reservation.notes || "No notes"}</p>
-                      <div className="mt-2 text-xs text-slate-600">Confirmation: {reservation.confirmationCode ?? "—"}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        )}
+        {renderReservations()}
+
       </div>
 
       <aside className="w-full shrink-0 lg:w-80">
