@@ -29,9 +29,11 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
       if (!tripId) return;
       try {
         setLoading(true);
-        const { getAccommodations } = await import("@/features/trips/api");
-        const data = await getAccommodations(tripId);
-        setStays(data as unknown as Accommodation[]);
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+        const res = await fetch(`${baseUrl}/api/trips/${tripId}/accommodations`);
+        if (!res.ok) return;
+        const data = (await res.json()) as Accommodation[];
+        setStays(data);
       } finally {
         setLoading(false);
       }
@@ -68,7 +70,7 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
                 </span>
               </button>
             </div>
-            <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
+            <button className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
               <span className="material-symbols-outlined text-lg">
                 add_business
               </span>
@@ -82,7 +84,7 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
         )}
 
         {noData && !loading ? (
-          <div className="rounded-xl border-white border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
             No accommodations found for this trip.
           </div>
         ) : (
@@ -90,7 +92,7 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
           {stays.map((stay) => (
             <div
               key={stay.id ?? stay.name}
-              className={`group flex flex-col overflow-hidden rounded-2xl border-white bg-white shadow-sm transition duration-300 hover:shadow-xl md:flex-row ${
+              className={`group flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-300 hover:shadow-xl md:flex-row ${
                 stay.status === "PENDING" ? "opacity-80 grayscale-[0.3]" : ""
               }`}
             >
@@ -218,8 +220,8 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
 
       <aside className="w-full shrink-0 lg:w-80">
         <div className="sticky top-28 space-y-6">
-          <div className="overflow-hidden rounded-2xl border-white bg-white shadow-sm">
-            <div className="flex items-center justify-between border-white px-4 py-3">
+          <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b px-4 py-3">
               <h4 className="text-sm font-semibold text-slate-900">
                 Stay map view
               </h4>

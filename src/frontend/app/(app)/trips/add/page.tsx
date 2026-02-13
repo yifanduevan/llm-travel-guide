@@ -2,12 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import DateRangePicker from "@/features/trips/components/DateRangePicker";
 
 type UserPreferences = {
   destination: string;
-  startDate: string | null;
-  endDate: string | null;
+  duration: number;
   budget: "Budget" | "Medium" | "Luxury";
   interests: string[];
   travelers: "Solo" | "Couple" | "Family" | "Group";
@@ -27,8 +25,7 @@ export default function AddTripPage() {
   const router = useRouter();
   const [prefs, setPrefs] = useState<UserPreferences>({
     destination: "",
-    startDate: null,
-    endDate: null,
+    duration: 3,
     budget: "Medium",
     interests: [],
     travelers: "Couple",
@@ -43,30 +40,7 @@ export default function AddTripPage() {
     };
   }, []);
 
-  // Close on Escape key
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        router.push('/trips');
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [router]);
-
   const selectedCount = useMemo(() => prefs.interests.length, [prefs.interests]);
-
-  // Validation: check if form can be submitted
-  const isFormValid = useMemo(() => {
-    const hasDestination = !!prefs.destination.trim();
-    const hasStartDate = !!prefs.startDate;
-    const hasEndDate = !!prefs.endDate;
-    
-    // For date comparison, use string comparison (YYYY-MM-DD format is lexicographically sortable)
-    const datesValid = hasStartDate && hasEndDate && prefs.endDate! >= prefs.startDate!;
-    
-    return hasDestination && hasStartDate && hasEndDate && datesValid;
-  }, [prefs]);
 
   const toggleInterest = (interest: string) => {
     setPrefs((prev) => ({
@@ -79,23 +53,10 @@ export default function AddTripPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!prefs.destination || !prefs.startDate) return;
+    if (!prefs.destination) return;
 
     setIsGenerating(true);
-    
-    // Prepare trip data payload with all required fields
-    const tripPayload = {
-      titleOrDestination: prefs.destination,
-      startDate: prefs.startDate,
-      endDate: prefs.endDate,
-      travelers: prefs.travelers,
-      budget: prefs.budget,
-      interests: prefs.interests,
-    };
-    
-    // Placeholder: simulate trip creation with payload
-    console.log("Creating trip with payload:", tripPayload);
-    
+    // Placeholder: simulate trip creation, then go back to trips.
     setTimeout(() => {
       setIsGenerating(false);
       router.push("/trips");
@@ -104,16 +65,7 @@ export default function AddTripPage() {
 
   return (
     <div className="flex h-[calc(100vh-120px)] items-center justify-center overflow-hidden bg-slate-50 px-4">
-      <div className="w-full max-w-3xl translate-y-2 rounded-2xl bg-white p-8 shadow-xl sm:p-10 relative">
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={() => router.push('/trips')}
-          className="absolute right-4 top-4 rounded-full p-2 text-slate-600 hover:bg-slate-100 transition"
-        >
-          <span className="material-symbols-outlined">close</span>
-        </button>
-
+      <div className="w-full max-w-3xl translate-y-2 rounded-2xl bg-white p-8 shadow-xl sm:p-10">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-900">
             <span className="material-symbols-outlined text-xl">auto_awesome</span>
@@ -144,22 +96,27 @@ export default function AddTripPage() {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-              <span className="material-symbols-outlined text-base">calendar_month</span>
-              When?
-            </label>
-            <DateRangePicker
-              startDate={prefs.startDate}
-              endDate={prefs.endDate}
-              onChange={(startDate, endDate) =>
-                setPrefs((prev) => ({ ...prev, startDate, endDate }))
-              }
-              placeholder="Select departure and return dates"
-            />
-          </div>
-
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+                <span className="material-symbols-outlined text-base">calendar_month</span>
+                How long?
+              </label>
+              <select
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                value={prefs.duration}
+                onChange={(e) =>
+                  setPrefs((prev) => ({ ...prev, duration: Number(e.target.value) }))
+                }
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 10, 14].map((d) => (
+                  <option key={d} value={d}>
+                    {d} Days
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
                 <span className="material-symbols-outlined text-base">group</span>
@@ -230,7 +187,7 @@ export default function AddTripPage() {
 
           <button
             type="submit"
-            disabled={isGenerating || !isFormValid}
+            disabled={isGenerating}
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isGenerating ? (

@@ -50,7 +50,7 @@ export default function TransportationView({ trip, segments }: Props) {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
+            <button className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
               <span className="material-symbols-outlined text-lg">
                 add_circle
               </span>
@@ -68,7 +68,7 @@ export default function TransportationView({ trip, segments }: Props) {
             {segmentState.map((segment) => (
             <div
               key={segment.id}
-              className={`group flex flex-col overflow-hidden rounded-2xl border-white bg-white shadow-sm transition hover:shadow-lg md:flex-row ${
+              className={`group flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:shadow-lg md:flex-row ${
                 segment.completed ? "opacity-70 grayscale" : ""
               }`}
             >
