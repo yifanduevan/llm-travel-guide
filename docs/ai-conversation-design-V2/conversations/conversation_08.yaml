@@ -1,0 +1,18 @@
+Conversation #8
+Scenario: Long summer stay in Rome
+
+User Input:
+- Destination: Rome
+- Start Date: June 1, 2026
+- End Date: June 14, 2026
+- Group: Couple
+- Budget: Medium
+- Interests: History, Food
+
+AI Output:
+Season: Early Summer
+
+Clustered districts by neighborhood to avoid heat exposure during peak hours.
+
+Observation:
+AI distributed landmarks across districts to prevent overcrowding and excessive walking in high temperatures.

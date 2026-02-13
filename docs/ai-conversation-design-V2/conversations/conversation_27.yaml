@@ -1,0 +1,21 @@
+Conversation #27
+Scenario: National holiday fireworks in Sydney
+
+User Input:
+- Destination: Sydney
+- Start Date: January 24, 2026
+- End Date: January 27, 2026
+- Group: Friends
+- Budget: Medium
+- Interests: Events
+
+AI Output:
+Season: Australia Day
+
+Harbour Bridge fireworks viewing spots.
+Clustered Circular Quay attractions.
+Transportation: Ferry + light rail
+
+Observation:
+AI integrated holiday-specific events and optimized harbor-area movement.
+

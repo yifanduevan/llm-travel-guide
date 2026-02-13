@@ -1,0 +1,14 @@
+Conversation #14
+Scenario: Seoul summer subway optimization
+
+User Input:
+- Destination: Seoul
+- Start Date: August 1, 2026
+- End Date: August 4, 2026
+
+AI Output:
+Subway lines identified for each day.
+Clustered attractions along Line 2.
+
+Observation:
+AI explicitly aligned recommendations with Google Maps routing logic.

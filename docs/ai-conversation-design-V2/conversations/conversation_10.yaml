@@ -1,0 +1,19 @@
+Conversation #10
+Scenario: Senior autumn trip to Kyoto
+
+User Input:
+- Destination: Kyoto
+- Start Date: November 5, 2026
+- End Date: November 9, 2026
+- Group: Couple
+- Budget: Medium
+- Interests: Culture, Relaxation
+
+AI Output:
+Season: Autumn foliage
+
+Temple visits grouped by district.
+Short travel distances.
+
+Observation:
+AI reduced daily movement and leveraged peak fall foliage season.

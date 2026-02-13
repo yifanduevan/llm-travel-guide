@@ -1,0 +1,20 @@
+Conversation #26
+Scenario: Fall foliage road trip in Vancouver
+
+User Input:
+- Destination: Vancouver
+- Start Date: October 20, 2026
+- End Date: October 24, 2026
+- Group: Friends
+- Budget: Medium
+- Interests: Nature
+
+AI Output:
+Season: Autumn
+
+Day trips grouped by North Shore mountains.
+Car route optimized via Google Maps scenic routing.
+Seasonal Highlight: Fall colors in Stanley Park
+
+Observation:
+AI structured itinerary around scenic driving routes.

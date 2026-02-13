@@ -1,0 +1,21 @@
+Conversation #18
+Scenario: Ski season in Zermatt
+
+User Input:
+- Destination: Zermatt
+- Start Date: January 20, 2026
+- End Date: January 25, 2026
+- Group: Friends
+- Budget: Luxury
+- Interests: Skiing
+
+AI Output:
+Season: Ski Peak Season
+
+Day clusters based on ski slopes and lift systems.
+Transportation: Mountain rail + lift system integration
+Seasonal Highlight: Optimal snow conditions
+
+Observation:
+AI structured days around ski zones and lift geography, aligning with winter terrain maps.
+
