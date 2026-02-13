@@ -10,13 +10,14 @@ export default function LandingPage() {
         <h1 className="text-4xl font-semibold text-slate-900">
           Organize your next trip.
         </h1>
-        <p className="max-w-xl text-lg text-slate-500">
+        <p className="max-w-xl text-lg text-slate-600">
           Start by signing in to manage itineraries, add new trips, and keep
           plans in sync.
         </p>
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
+          className="inline-flex w-fit items-center justify-center rounded-lg bg-slate-900 px-5 py-3 text-white shadow-sm transition hover:bg-slate-800"
+        >
           Go to login
         </Link>
       </div>

@@ -5,111 +5,73 @@ import {
   DiningReservation,
   TransportSegment,
 } from "@/features/trips/components/TripWorkspace";
-import { getTrip, getTransportSegments, getDiningReservations, getAccommodations } from "@/features/trips/api";
-import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from "@/lib/types";
 
 type TripDetailPageProps = {
   params: Promise<{ tripId: string }>;
 };
 
-type LocalTripDto = {
+type TripDto = {
   id: string;
   titleOrDestination: string;
   startDate: string | null;
   endDate: string | null;
 };
 
-function mapTripDto(apiTrip: TripDto): LocalTripDto {
-  return {
-    id: apiTrip.id || '',
-    titleOrDestination: apiTrip.titleOrDestination || '',
-    startDate: apiTrip.startDate || null,
-    endDate: apiTrip.endDate || null,
-  };
-}
-
-function mapAccommodationDto(apiAcc: AccommodationDto): Accommodation {
-  return {
-    id: apiAcc.id || '',
-    name: apiAcc.name || '',
-    address: apiAcc.address || null,
-    roomType: apiAcc.roomType || null,
-    checkIn: apiAcc.checkIn || null,
-    checkOut: apiAcc.checkOut || null,
-    rate: apiAcc.rate?.toString() || null,
-    currency: apiAcc.currency || null,
-    status: apiAcc.status || '',
-    confirmationCode: apiAcc.confirmationCode || null,
-    tags: apiAcc.tags || null,
-    imageUrl: apiAcc.imageUrl || null,
-    notes: apiAcc.notes || null,
-  };
-}
-
-function mapDiningReservationDto(apiRes: DiningReservationDto): DiningReservation {
-  return {
-    id: apiRes.id || '',
-    name: apiRes.name || '',
-    time: apiRes.time || null,
-    cuisine: apiRes.cuisine || null,
-    priceTier: apiRes.priceTier || null,
-    status: apiRes.status || '',
-    address: apiRes.address || null,
-    notes: apiRes.notes || null,
-    confirmationCode: apiRes.confirmationCode || null,
-    partySize: apiRes.partySize || null,
-    imageUrl: apiRes.imageUrl || null,
-  };
-}
-
-function mapTransportSegmentDto(apiSeg: TransportSegmentDto): TransportSegment {
-  return {
-    id: apiSeg.id || '',
-    type: apiSeg.type || '',
-    title: apiSeg.title || '',
-    startTime: apiSeg.startTime || null,
-    startLocation: apiSeg.startLocation || null,
-    endTime: apiSeg.endTime || null,
-    endLocation: apiSeg.endLocation || null,
-    durationText: apiSeg.durationText || null,
-    status: apiSeg.status || '',
-    confirmationCode: apiSeg.confirmationCode || null,
-    ticketUrl: apiSeg.ticketUrl || null,
-    completed: !!apiSeg.completed,
-  };
-}
-
-async function fetchTrip(tripId: string): Promise<LocalTripDto | null> {
+async function fetchTrip(tripId: string): Promise<TripDto | null> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   try {
-    const apiTrip = await getTrip(tripId);
-    return mapTripDto(apiTrip);
+    const res = await fetch(`${baseUrl}/api/trips/${tripId}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as TripDto;
   } catch {
     return null;
   }
 }
 
 async function fetchSegments(tripId: string): Promise<TransportSegment[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   try {
-    const apiSegments = await getTransportSegments(tripId);
-    return apiSegments.map(mapTransportSegmentDto);
+    const res = await fetch(
+      `${baseUrl}/api/trips/${tripId}/transport-segments`,
+      {
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as TransportSegment[];
   } catch {
     return [];
   }
 }
 
 async function fetchReservations(tripId: string): Promise<DiningReservation[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   try {
-    const apiReservations = await getDiningReservations(tripId);
-    return apiReservations.map(mapDiningReservationDto);
+    const res = await fetch(
+      `${baseUrl}/api/trips/${tripId}/dining-reservations`,
+      {
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as DiningReservation[];
   } catch {
     return [];
   }
 }
-
 async function fetchAccommodations(tripId: string): Promise<Accommodation[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   try {
-    const apiAccommodations = await getAccommodations(tripId);
-    return apiAccommodations.map(mapAccommodationDto);
+    const res = await fetch(
+      `${baseUrl}/api/trips/${tripId}/accommodations`,
+      {
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as Accommodation[];
   } catch {
     return [];
   }
@@ -137,15 +99,14 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
 
       <div className="flex gap-3">
         <Link
-          href={`?edit=true`}
-          className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary"
+          href={`/trips/${tripId}/edit`}
+          className="rounded-lg bg-slate-900 px-4 py-2 text-white transition hover:bg-slate-800"
         >
           Edit trip
         </Link>
         <Link
           href="/trips"
-          className="rounded-lg border border-slate-400 px-4 py-2 transition hover:border-slate-900 hover:bg-slate-50"
-          style={{ color: '#5e5e5e' }}
+          className="rounded-lg border border-slate-200 px-4 py-2 text-slate-800 transition hover:border-slate-300 hover:bg-white"
         >
           Back to trips
         </Link>

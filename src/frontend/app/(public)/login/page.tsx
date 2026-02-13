@@ -17,7 +17,7 @@ export default function LoginPage() {
   return (
     <div className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
       <div className="mb-6 space-y-2 text-center">
-        <p className="text-md font-semibold uppercase text-slate-600">Login</p>
+        <p className="text-sm font-semibold uppercase text-slate-500">Login</p>
         <h1 className="text-2xl font-semibold text-slate-900">
           Welcome back
         </h1>
@@ -48,7 +48,7 @@ export default function LoginPage() {
         </label>
         <button
           type="submit"
-          className="btn-primary rounded-lg px-4 py-2"
+          className="flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-white transition hover:bg-slate-800"
         >
           Sign in
         </button>
