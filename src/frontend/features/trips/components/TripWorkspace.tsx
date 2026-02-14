@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import TabNavigation from "./TabNavigation";
 import ItineraryView from "./ItineraryView";
@@ -9,7 +9,6 @@ import TransportationView from "./TransportationView";
 import AccommodationsView from "./AccommodationsView";
 import ActivitiesView from "./ActivitiesView";
 import { ViewName } from "../types";
-import type { TransportMode } from "../iconMap";
 
 type TripWorkspaceProps = {
   tripId: string;
@@ -27,22 +26,16 @@ type TripWorkspaceProps = {
 
 export type TransportSegment = {
   id: string;
-  mode: TransportMode;
-  type?: string | null;
+  type: string;
   title: string;
-  customModeName?: string;
   startTime: string | null;
-  startTz?: string | null;
   startLocation: string | null;
   endTime: string | null;
-  endTz?: string | null;
   endLocation: string | null;
   durationText: string | null;
   status: string;
-  confirmationCode?: string | null;
-  ticketsUrl?: string | null;
-  ticketUrl?: string | null;
-  notes?: string | null;
+  confirmationCode: string | null;
+  ticketUrl: string | null;
   completed: boolean;
 };
 
@@ -80,6 +73,7 @@ export default function TripWorkspace({
   tripId,
   trip,
   transportSegments,
+  diningReservations,
   accommodations,
   editable = false,
 }: TripWorkspaceProps) {
@@ -97,19 +91,22 @@ export default function TripWorkspace({
           ).toLocaleDateString()}`
       : null;
 
-  const viewContent = (() => {
+  const viewContent = useMemo(() => {
     switch (currentView) {
       case "itinerary":
-        return <ItineraryView editable={isEditable} trip={trip} tripId={tripId} />;
+        return <ItineraryView editable={isEditable} trip={trip} />;
       case "dining":
         return (
           <DiningView
+            trip={trip}
             tripId={tripId}
-            tripStartDate={trip?.startDate ?? null}
+            reservations={diningReservations}
           />
         );
       case "transportation":
-        return <TransportationView trip={trip} segments={transportSegments} />;
+        return (
+          <TransportationView trip={trip} segments={transportSegments} />
+        );
       case "accommodation":
         return (
           <AccommodationsView
@@ -127,7 +124,7 @@ export default function TripWorkspace({
               {currentView}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              {isEditable
+              {editable
                 ? "Editing enabled — wire up fields for this section."
                 : "Viewing only — click Edit to make changes."}
             </p>
@@ -137,7 +134,7 @@ export default function TripWorkspace({
           </div>
         );
     }
-  })();
+  }, [currentView, editable]);
 
   return (
     <div className="space-y-6">

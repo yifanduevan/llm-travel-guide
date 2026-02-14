@@ -1,19 +1,82 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { getItinerary } from "@/features/trips/api";
-import type { ItineraryDay } from "@/features/trips/itineraryTypes";
+import { useState } from "react";
+
+type ItineraryItem = {
+  icon: string;
+  title: string;
+  time: string;
+  note: string;
+  image?: string;
+  muted?: boolean;
+};
+
+type ItineraryDay = {
+  label: string;
+  date: string;
+  active?: boolean;
+  items: ItineraryItem[];
+};
 
 type ItineraryViewProps = {
   editable?: boolean;
-  tripId?: string;
   trip?: {
-    id?: string;
     titleOrDestination?: string;
     startDate?: string | null;
     endDate?: string | null;
   };
 };
-export default function ItineraryView({ editable = false, trip, tripId }: ItineraryViewProps) {
+
+const days: ItineraryDay[] = [
+  {
+    label: "Day 1: Arrival & Settlement",
+    date: "Saturday, Oct 12",
+    active: true,
+    items: [
+      {
+        icon: "flight_land",
+        title: "Land at CDG Airport",
+        time: "11:05 AM",
+        note:
+          'Terminal 2E. Driver will wait at Exit 4 holding a sign "Smith Family".',
+      },
+      {
+        icon: "hotel",
+        title: "Check-in: The Luminary Hotel",
+        time: "01:00 PM",
+        note: "Early check-in requested. Confirmation #FR-88219-X.",
+      },
+      {
+        icon: "restaurant",
+        title: "Lunch at The Green Kitchen",
+        time: "01:30 PM",
+        note: "Table for 2. Vegetarian menu available.",
+      },
+    ],
+  },
+  {
+    label: "Day 2: Art & Culture",
+    date: "Sunday, Oct 13",
+    items: [
+      {
+        icon: "museum",
+        title: "Louvre Museum Masterpieces Tour",
+        time: "09:30 AM",
+        note: "Meet guide at the Pyramid entrance. Skip-the-line tickets included.",
+        image:
+          "https://images.unsplash.com/photo-1543349689-9a4d426bee8d?auto=format&fit=crop&w=300&q=80",
+      },
+      {
+        icon: "directions_walk",
+        title: "Free Time: Tuileries Garden",
+        time: "01:00 PM",
+        note: "Grab a sandwich from Paul's and sit by the fountain.",
+        muted: true,
+      },
+    ],
+  },
+];
+
+export default function ItineraryView({ editable = false, trip }: ItineraryViewProps) {
   const [packingItems, setPackingItems] = useState([
     { text: "Travel adapters", checked: true },
     { text: "Passport & copies", checked: true },
@@ -24,36 +87,6 @@ export default function ItineraryView({ editable = false, trip, tripId }: Itiner
   const [newItemText, setNewItemText] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [menuOpenIndex, setMenuOpenIndex] = useState<number | null>(null);
-  const [days, setDays] = useState<ItineraryDay[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const resolvedTripId = useMemo(() => tripId ?? trip?.id ?? "", [tripId, trip?.id]);
-
-  const loadItinerary = async () => {
-    if (!resolvedTripId) {
-      setDays([]);
-      return;
-    }
-    try {
-      setError(null);
-      setLoading(true);
-      const data = await getItinerary(resolvedTripId);
-      setDays(Array.isArray(data) ? data : []);
-    } catch {
-      setError("Unable to load itinerary. Please try again.");
-      setDays([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadItinerary().catch(() => {
-      setError("Unable to load itinerary. Please try again.");
-      setLoading(false);
-    });
-  }, [resolvedTripId]);
 
   const addPackingItem = () => {
     if (newItemText.trim()) {
@@ -90,7 +123,7 @@ export default function ItineraryView({ editable = false, trip, tripId }: Itiner
     setNewItemText("");
   };
 
-  const header = "Your Journey";
+  const header = trip?.titleOrDestination ?? "Your Journey";
   const dates =
     trip?.startDate && trip?.endDate
       ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(
@@ -119,89 +152,63 @@ export default function ItineraryView({ editable = false, trip, tripId }: Itiner
            
 
         <div className="relative space-y-12 border-l border-slate-200 pl-6">
-          {loading ? (
-            <div className="space-y-6">
-              {[0, 1, 2].map((index) => (
-                <div key={index} className="animate-pulse space-y-4">
-                  <div className="h-5 w-40 rounded bg-slate-200" />
-                  <div className="h-3 w-24 rounded bg-slate-100" />
-                  <div className="h-20 rounded-2xl bg-slate-100" />
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              <p>{error}</p>
-              <button
-                onClick={() => loadItinerary()}
-                className="mt-3 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
-              >
-                Retry
-              </button>
-            </div>
-          ) : days.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
-              No itinerary yet.
-            </div>
-          ) : (
-            days.map((day) => (
-              <div key={day.label} className="relative">
-                <div className="absolute -left-[34px] top-0 flex flex-col items-center">
+          {days.map((day, idx) => (
+            <div key={day.label} className="relative">
+              <div className="absolute -left-[34px] top-0 flex flex-col items-center">
+                <div
+                  className={`h-5 w-5 rounded-full border-4 ${
+                    day.active
+                      ? "bg-slate-900 border-white"
+                      : "bg-white border-white"
+                  }`}
+                />
+              </div>
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold text-slate-900">
+                  {day.label}
+                </h3>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {day.date}
+                </p>
+              </div>
+              <div className="space-y-4">
+                {day.items.map((item) => (
                   <div
-                    className={`h-5 w-5 rounded-full border-4 ${
-                      day.active
-                        ? "bg-slate-900 border-white"
-                        : "bg-white border-white"
+                    key={item.title}
+                    className={`flex gap-4 rounded-2xl border-white bg-white p-5 shadow-sm transition hover:shadow-md ${
+                      item.muted ? "opacity-70" : ""
                     }`}
-                  />
-                </div>
-                <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-slate-900">
-                    {day.label}
-                  </h3>
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {day.date}
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  {day.items.map((item) => (
-                    <div
-                      key={`${day.label}-${item.title}-${item.time}`}
-                      className={`flex gap-4 rounded-2xl border-white bg-white p-5 shadow-sm transition hover:shadow-md ${
-                        item.muted ? "opacity-70" : ""
-                      }`}
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                        <span className="material-symbols-outlined">
-                          {item.icon}
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                      <span className="material-symbols-outlined">
+                        {item.icon}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-semibold text-slate-900">
+                          {item.title}
+                        </h4>
+                        <span className="rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+                          {item.time}
                         </span>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className="font-semibold text-slate-900">
-                            {item.title}
-                          </h4>
-                          <span className="rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
-                            {item.time}
-                          </span>
+                      <p className="mt-1 text-sm text-slate-600">{item.note}</p>
+                      {item.image ? (
+                        <div className="mt-3 h-12 w-16 overflow-hidden rounded-lg">
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="h-full w-full object-cover"
+                          />
                         </div>
-                        <p className="mt-1 text-sm text-slate-600">{item.note}</p>
-                        {item.image ? (
-                          <div className="mt-3 h-12 w-16 overflow-hidden rounded-lg">
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        ) : null}
-                      </div>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            ))
-          )}
+            </div>
+          ))}
 
           <div className="relative">
             <div className="absolute -left-[34px] top-0 flex flex-col items-center">
@@ -230,7 +237,7 @@ export default function ItineraryView({ editable = false, trip, tripId }: Itiner
               {packingItems.map((item, index) => (
                 <div key={index} className="relative">
                   {editingIndex === index ? (
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center rounded-lg p-2 bg-white border">
+                    <div className="flex items-center gap-2 rounded-lg p-2 bg-white border">
                       <input
                         type="text"
                         value={newItemText}
@@ -242,23 +249,21 @@ export default function ItineraryView({ editable = false, trip, tripId }: Itiner
                             cancelEdit();
                           }
                         }}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm text-black focus:border-slate-500 focus:outline-none"
                         autoFocus
                       />
-                      <div className="flex justify-end gap-2 sm:justify-start">
-                        <button
-                          onClick={saveEdit}
-                          className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                      <button
+                        onClick={saveEdit}
+                        className="rounded bg-slate-900 px-2 py-1 text-xs font-semibold text-white hover:bg-slate-800"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="rounded bg-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-300"
+                      >
+                        Cancel
+                      </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 rounded-lg p-2 hover:bg-white">
