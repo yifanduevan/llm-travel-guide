@@ -5,6 +5,7 @@ import {
   DiningReservation,
   TransportSegment,
 } from "@/features/trips/components/TripWorkspace";
+import { normalizeTransportMode } from "@/features/trips/iconMap";
 import { getTrip, getTransportSegments, getDiningReservations, getAccommodations } from "@/features/trips/api";
 import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from "@/lib/types";
 
@@ -65,7 +66,8 @@ function mapDiningReservationDto(apiRes: DiningReservationDto): DiningReservatio
 function mapTransportSegmentDto(apiSeg: TransportSegmentDto): TransportSegment {
   return {
     id: apiSeg.id || '',
-    type: apiSeg.type || '',
+    mode: normalizeTransportMode(apiSeg.type),
+    type: apiSeg.type || null,
     title: apiSeg.title || '',
     startTime: apiSeg.startTime || null,
     startLocation: apiSeg.startLocation || null,
@@ -74,6 +76,7 @@ function mapTransportSegmentDto(apiSeg: TransportSegmentDto): TransportSegment {
     durationText: apiSeg.durationText || null,
     status: apiSeg.status || '',
     confirmationCode: apiSeg.confirmationCode || null,
+    ticketsUrl: apiSeg.ticketUrl || null,
     ticketUrl: apiSeg.ticketUrl || null,
     completed: !!apiSeg.completed,
   };
