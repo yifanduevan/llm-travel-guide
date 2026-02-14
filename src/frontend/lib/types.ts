@@ -44,7 +44,6 @@ export interface DiningReservationDto {
 
 export interface TransportSegmentDto {
   id?: string;
-  tripId?: string;
   type?: string;
   title?: string;
   startTime?: string;
