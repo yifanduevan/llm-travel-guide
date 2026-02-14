@@ -4,9 +4,9 @@ name: CI
 
 on:
   push:
-    branches: [ "CICD" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "CICD" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
