@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, useRef } from "react"; 
 import { useRouter } from "next/navigation";
 import DateRangePicker from "@/features/trips/components/DateRangePicker";
 
@@ -35,15 +35,20 @@ export default function AddTripPage() {
   });
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // 2. 增加控制引用的状态
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous;
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
 
-  // Close on Escape key
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -56,15 +61,11 @@ export default function AddTripPage() {
 
   const selectedCount = useMemo(() => prefs.interests.length, [prefs.interests]);
 
-  // Validation: check if form can be submitted
   const isFormValid = useMemo(() => {
     const hasDestination = !!prefs.destination.trim();
     const hasStartDate = !!prefs.startDate;
     const hasEndDate = !!prefs.endDate;
-    
-    // For date comparison, use string comparison (YYYY-MM-DD format is lexicographically sortable)
     const datesValid = hasStartDate && hasEndDate && prefs.endDate! >= prefs.startDate!;
-    
     return hasDestination && hasStartDate && hasEndDate && datesValid;
   }, [prefs]);
 
@@ -77,29 +78,57 @@ export default function AddTripPage() {
     }));
   };
 
+  const handleCancel = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    setIsGenerating(false);
+    console.log("Generation cancelled or timed out.");
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    
+    if (isGenerating) {
+      handleCancel();
+      return;
+    }
+
     if (!prefs.destination || !prefs.startDate) return;
 
     setIsGenerating(true);
-    
-    // Prepare trip data payload with all required fields
-    const tripPayload = {
-      titleOrDestination: prefs.destination,
-      startDate: prefs.startDate,
-      endDate: prefs.endDate,
-      travelers: prefs.travelers,
-      budget: prefs.budget,
-      interests: prefs.interests,
-    };
-    
-    // Placeholder: simulate trip creation with payload
-    console.log("Creating trip with payload:", tripPayload);
-    
-    setTimeout(() => {
+
+    // 4. 初始化取消控制器和 10 秒超时
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    timeoutRef.current = setTimeout(() => {
+      console.warn("Generation timed out after 10s");
+      handleCancel();
+    }, 10000);
+
+    try {
+      console.log("Creating trip with payload:", prefs);
+
+      // 模拟 AI 接口调用
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, 5000); // 假设 AI 需要 5 秒回应
+        controller.signal.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new Error("Aborted"));
+        });
+      });
+
+      // 成功完成后清理
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsGenerating(false);
       router.push("/trips");
-    }, 900);
+    } catch (err: any) {
+      if (err.name === 'Aborted' || err.message === 'Aborted') {
+        console.log("Request successfully aborted.");
+      } else {
+        setIsGenerating(false);
+      }
+    }
   };
 
   return (
@@ -230,15 +259,19 @@ export default function AddTripPage() {
 
           <button
             type="submit"
-            disabled={isGenerating || !isFormValid}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+            disabled={!isGenerating && !isFormValid}
+            className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-4 text-white transition ${
+              isGenerating 
+                ? "bg-red-500 hover:bg-red-600 shadow-inner" 
+                : "bg-slate-900 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+            }`}
           >
             {isGenerating ? (
               <>
                 <span className="material-symbols-outlined animate-spin text-lg">
                   autorenew
                 </span>
-                Generating itinerary...
+                Generating... (Click to Cancel)
               </>
             ) : (
               <>Generate my guide</>
