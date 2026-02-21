@@ -105,7 +105,10 @@ export default function TripWorkspace({
         );
       case "transportation":
         return (
-          <TransportationView trip={trip} segments={transportSegments} />
+          <TransportationView
+            tripId={tripId}
+            trip={trip}
+            segments={transportSegments} />
         );
       case "accommodation":
         return (
