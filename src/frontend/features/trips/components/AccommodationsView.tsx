@@ -25,7 +25,7 @@ type CreateAccommodationRequest = {
   roomType: string | null;
   checkIn: string | null;
   checkOut: string | null;
-  rate: number | null;
+  rate: string | null;
   currency: string | null;
   status: string | null;
   confirmationCode: string | null;
@@ -40,7 +40,7 @@ const defaultForm: CreateAccommodationRequest = {
   roomType: "",
   checkIn: "",
   checkOut: "",
-  rate: null,
+  rate: "",
   currency: "USD",
   status: "PENDING",
   confirmationCode: "",
@@ -111,7 +111,7 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
       roomType: dto.roomType ?? null,
       checkIn: dto.checkIn ?? null,
       checkOut: dto.checkOut ?? null,
-      rate: dto.rate ?? null,
+      rate: dto.rate != null ? String(dto.rate) : null,
       currency: dto.currency ?? null,
       status: dto.status ?? "PENDING",
       confirmationCode: dto.confirmationCode ?? null,
@@ -160,8 +160,10 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
       checkIn: formState.checkIn || null,
       checkOut: formState.checkOut || null,
       rate:
-        formState.rate !== null && formState.rate !== undefined
-          ? Number(formState.rate)
+        formState.rate !== null &&
+        formState.rate !== undefined &&
+        formState.rate.trim() !== ""
+          ? formState.rate.trim()
           : null,
       currency: formState.currency?.trim() || null,
       status: formState.status?.trim().toUpperCase() || null,
@@ -590,7 +592,7 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
                 onChange={(e) =>
                   setFormState((prev) => ({
                     ...prev,
-                    rate: e.target.value ? Number(e.target.value) : null,
+                    rate: e.target.value,
                   }))
                 }
                 placeholder="250"
