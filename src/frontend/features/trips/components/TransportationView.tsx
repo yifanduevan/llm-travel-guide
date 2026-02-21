@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { TransportSegment } from "./TripWorkspace";
+import { getTransportSegments } from "@/features/trips/api";
+import type { TransportSegmentDto } from "@/lib/types";
+import OverlayModal from "./OverlayModal";
+import ConfirmOverlay from "./ConfirmOverlay";
 
 type TripInfo = {
   titleOrDestination?: string;
@@ -9,23 +13,112 @@ type TripInfo = {
   endDate?: string | null;
 };
 
-type Props = { trip?: TripInfo; segments?: TransportSegment[] };
-
-const fallbackImage =
-  "https://images.unsplash.com/photo-1468141589437-8e32ae39f934?auto=format&fit=crop&w=600&q=80";
+type Props = { tripId: string; trip?: TripInfo; segments?: TransportSegment[] };
 
 const fallbackSegments: TransportSegment[] = [];
 
-export default function TransportationView({ trip, segments }: Props) {
+type CreateTransportSegmentRequest = {
+  type: string | null;
+  title: string;
+  startTime: string | null;
+  startLocation: string | null;
+  endTime: string | null;
+  endLocation: string | null;
+  durationText: string | null;
+  status: string | null;
+  confirmationCode: string | null;
+  ticketUrl: string | null;
+  completed: boolean;
+};
+
+const defaultForm: CreateTransportSegmentRequest = {
+  type: "FLIGHT",
+  title: "",
+  startTime: "",
+  startLocation: "",
+  endTime: "",
+  endLocation: "",
+  durationText: "",
+  status: "PLANNED",
+  confirmationCode: "",
+  ticketUrl: "",
+  completed: false,
+};
+
+async function createTransportSegment(
+  tripId: string,
+  payload: CreateTransportSegmentRequest,
+): Promise<TransportSegment> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  const res = await fetch(
+    `${baseUrl}/api/trips/${tripId}/transport-segments`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || "Failed to create transport segment");
+  }
+  return (await res.json()) as TransportSegment;
+}
+
+export default function TransportationView({ trip, segments, tripId }: Props) {
   const initial = useMemo(
     () => (segments && segments.length > 0 ? segments : fallbackSegments),
     [segments],
   );
   const [segmentState, setSegmentState] = useState(initial);
+  const [loading, setLoading] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [formState, setFormState] = useState<CreateTransportSegmentRequest>(defaultForm);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<TransportSegment | null>(null);
 
   useEffect(() => {
     setSegmentState(initial);
   }, [initial]);
+
+  // Map API DTO to internal type (fill required keys)
+  function mapTransportSegmentDto(dto: TransportSegmentDto): TransportSegment {
+    return {
+      id: dto.id ?? "",
+      type: dto.type ?? "",
+      title: dto.title ?? "",
+      startTime: dto.startTime ?? null,
+      startLocation: dto.startLocation ?? null,
+      endTime: dto.endTime ?? null,
+      endLocation: dto.endLocation ?? null,
+      durationText: dto.durationText ?? null,
+      status: dto.status ?? "",
+      confirmationCode: dto.confirmationCode ?? null,
+      ticketUrl: dto.ticketUrl ?? null,
+      completed: dto.completed ?? false,
+    };
+  }
+
+  useEffect(() => {
+    const load = async () => {
+      if (!tripId) return;
+      try {
+        setLoading(true);
+        const data = await getTransportSegments(tripId);
+        setSegmentState(data.map(mapTransportSegmentDto));
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (!segments || segments.length === 0) {
+      load().catch(() => setLoading(false));
+    }
+  }, [tripId, segments]);
 
   const toggleComplete = (title: string) => {
     setSegmentState((prev) =>
@@ -33,6 +126,61 @@ export default function TransportationView({ trip, segments }: Props) {
         seg.title === title ? { ...seg, completed: !seg.completed } : seg
       )
     );
+  };
+
+  const handleDelete = async (segmentId: string) => {
+    if (!tripId || !segmentId) return;
+    setDeletingId(segmentId);
+    setListError(null);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+      const res = await fetch(
+        `${baseUrl}/api/trips/${tripId}/transport-segments/${segmentId}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(message || "Failed to delete segment");
+      }
+      setSegmentState((prev) => prev.filter((segment) => segment.id !== segmentId));
+    } catch (err) {
+      setListError(err instanceof Error ? err.message : "Unable to delete segment");
+    } finally {
+      setDeletingId(null);
+      setConfirmTarget(null);
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!tripId) return;
+    setSaving(true);
+    setError(null);
+
+    const payload: CreateTransportSegmentRequest = {
+      ...formState,
+      title: formState.title.trim() || "New segment",
+      type: (formState.type ?? "OTHER").toUpperCase(),
+      startTime: formState.startTime ? new Date(formState.startTime).toISOString() : null,
+      endTime: formState.endTime ? new Date(formState.endTime).toISOString() : null,
+      startLocation: formState.startLocation?.trim() || null,
+      endLocation: formState.endLocation?.trim() || null,
+      durationText: formState.durationText?.trim() || null,
+      status: formState.status?.trim().toUpperCase() || null,
+      confirmationCode: formState.confirmationCode?.trim() || null,
+      ticketUrl: formState.ticketUrl?.trim() || null,
+    };
+
+    try {
+      const created = await createTransportSegment(tripId, payload);
+      setSegmentState((prev) => [created, ...prev]);
+      setShowAddModal(false);
+      setFormState(defaultForm);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save segment");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const noData = !segmentState || segmentState.length === 0;
@@ -50,7 +198,10 @@ export default function TransportationView({ trip, segments }: Props) {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
+            <button
+              className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              onClick={() => setShowAddModal(true)}
+            >
               <span className="material-symbols-outlined text-lg">
                 add_circle
               </span>
@@ -59,7 +210,17 @@ export default function TransportationView({ trip, segments }: Props) {
           </div>
         </div>
 
-        {noData ? (
+        {listError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {listError}
+          </div>
+        )}
+
+        {loading && (
+          <p className="text-sm text-slate-600">Loading segments...</p>
+        )}
+
+        {noData && !loading ? (
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
             No transportation segments found for this trip.
           </div>
@@ -132,15 +293,31 @@ export default function TransportationView({ trip, segments }: Props) {
                     </span>
                     View tickets
                   </button>
-                  <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={segment.completed}
-                      onChange={() => toggleComplete(segment.title)}
-                      className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                    />
-                    Marked done
-                  </label>
+                  <div className="flex items-center gap-3 text-xs font-medium text-slate-600">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={segment.completed}
+                        onChange={() => toggleComplete(segment.title)}
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                      />
+                      Marked done
+                    </label>
+                    <button
+                      onClick={() => setConfirmTarget(segment)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100"
+                      title="Delete segment"
+                      disabled={deletingId === segment.id}
+                    >
+                      {deletingId === segment.id ? (
+                        <span className="material-symbols-outlined animate-spin text-sm">
+                          progress_activity
+                        </span>
+                      ) : (
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -182,6 +359,223 @@ export default function TransportationView({ trip, segments }: Props) {
           </div>
         </div>
       </aside>
+
+      <OverlayModal
+        open={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          setError(null);
+        }}
+        title="Add transport segment"
+        description="Capture key details for this leg so everyone stays on track."
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+              onClick={() => {
+                setShowAddModal(false);
+                setError(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="transport-segment-form"
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              disabled={saving}
+            >
+              {saving && (
+                <span className="material-symbols-outlined animate-spin text-base">
+                  progress_activity
+                </span>
+              )}
+              Save segment
+            </button>
+          </div>
+        }
+      >
+        <form
+          id="transport-segment-form"
+          className="space-y-4"
+          onSubmit={handleSubmit}
+        >
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Title
+                <span className="text-red-500">*</span>
+              </span>
+              <input
+                required
+                value={formState.title}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, title: e.target.value }))
+                }
+                placeholder="SFO → JFK"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Type
+              </span>
+              <select
+                value={formState.type ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, type: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              >
+                <option value="FLIGHT">Flight</option>
+                <option value="TRAIN">Train</option>
+                <option value="CAR">Car</option>
+                <option value="BUS">Bus</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Departure time
+              </span>
+              <input
+                type="datetime-local"
+                value={formState.startTime ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, startTime: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Arrival time
+              </span>
+              <input
+                type="datetime-local"
+                value={formState.endTime ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, endTime: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Departure location
+              </span>
+              <input
+                value={formState.startLocation ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, startLocation: e.target.value }))
+                }
+                placeholder="San Francisco (SFO)"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Arrival location
+              </span>
+              <input
+                value={formState.endLocation ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, endLocation: e.target.value }))
+                }
+                placeholder="New York (JFK)"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Status
+              </span>
+              <select
+                value={formState.status ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, status: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              >
+                <option value="PLANNED">Planned</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Duration text
+              </span>
+              <input
+                value={formState.durationText ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, durationText: e.target.value }))
+                }
+                placeholder="5h 45m"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Confirmation code
+              </span>
+              <input
+                value={formState.confirmationCode ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, confirmationCode: e.target.value }))
+                }
+                placeholder="ABC123"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Ticket URL
+              </span>
+              <input
+                value={formState.ticketUrl ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, ticketUrl: e.target.value }))
+                }
+                placeholder="https://tickets..."
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+          </div>
+        </form>
+      </OverlayModal>
+
+      <ConfirmOverlay
+        open={!!confirmTarget}
+        title="Delete segment"
+        message={
+          confirmTarget
+            ? `Delete "${confirmTarget.title}" from this trip? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        busy={deletingId !== null}
+        onCancel={() => setConfirmTarget(null)}
+        onConfirm={() => confirmTarget && handleDelete(confirmTarget.id)}
+      />
     </div>
   );
 }
