@@ -27,33 +27,47 @@ export default function ItineraryView({ editable = false, trip, tripId }: Itiner
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
 
   const resolvedTripId = useMemo(() => tripId ?? trip?.id ?? "", [tripId, trip?.id]);
 
-  const loadItinerary = async () => {
-    if (!resolvedTripId) {
-      setDays([]);
-      return;
-    }
-    try {
-      setError(null);
-      setLoading(true);
-      const data = await getItinerary(resolvedTripId);
-      setDays(Array.isArray(data) ? data : []);
-    } catch {
-      setError("Unable to load itinerary. Please try again.");
-      setDays([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadItinerary().catch(() => {
-      setError("Unable to load itinerary. Please try again.");
-      setLoading(false);
-    });
-  }, [resolvedTripId]);
+    let isActive = true;
+
+    const loadItinerary = async () => {
+      if (!resolvedTripId) {
+        if (isActive) {
+          setDays([]);
+        }
+        return;
+      }
+
+      if (isActive) {
+        setError(null);
+        setLoading(true);
+      }
+
+      try {
+        const data = await getItinerary(resolvedTripId);
+        if (!isActive) return;
+        setDays(Array.isArray(data) ? data : []);
+      } catch {
+        if (!isActive) return;
+        setError("Unable to load itinerary. Please try again.");
+        setDays([]);
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadItinerary();
+
+    return () => {
+      isActive = false;
+    };
+  }, [resolvedTripId, reloadTick]);
 
   const addPackingItem = () => {
     if (newItemText.trim()) {
@@ -133,7 +147,10 @@ export default function ItineraryView({ editable = false, trip, tripId }: Itiner
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               <p>{error}</p>
               <button
-                onClick={() => loadItinerary()}
+                onClick={() => {
+                  setError(null);
+                  setReloadTick((t) => t + 1);
+                }}
                 className="mt-3 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
               >
                 Retry
@@ -164,9 +181,9 @@ export default function ItineraryView({ editable = false, trip, tripId }: Itiner
                   </p>
                 </div>
                 <div className="space-y-4">
-                  {day.items.map((item) => (
+                  {day.items.map((item,index) => (
                     <div
-                      key={`${day.label}-${item.title}-${item.time}`}
+                      key={`${day.label}-${index}`}
                       className={`flex gap-4 rounded-2xl border-white bg-white p-5 shadow-sm transition hover:shadow-md ${
                         item.muted ? "opacity-70" : ""
                       }`}

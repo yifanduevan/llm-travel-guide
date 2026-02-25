@@ -35,7 +35,7 @@ export default function AddTripPage() {
   });
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // 2. 增加控制引用的状态
+  // Control refs for cancellation and timeout management
   const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -82,7 +82,6 @@ export default function AddTripPage() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (abortControllerRef.current) abortControllerRef.current.abort();
     setIsGenerating(false);
-    console.log("Generation cancelled or timed out.");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -97,38 +96,37 @@ export default function AddTripPage() {
 
     setIsGenerating(true);
 
-    // 4. 初始化取消控制器和 10 秒超时
+    // Initialize abort controller and 10-second timeout
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     timeoutRef.current = setTimeout(() => {
-      console.warn("Generation timed out after 10s");
       handleCancel();
     }, 10000);
 
     try {
-      console.log("Creating trip with payload:", prefs);
 
-      // 模拟 AI 接口调用
+      // Simulate AI API request
       await new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, 5000); // 假设 AI 需要 5 秒回应
+        const timer = setTimeout(resolve, 5000); // Simulate a 5-second AI response time
         controller.signal.addEventListener("abort", () => {
           clearTimeout(timer);
           reject(new Error("Aborted"));
         });
       });
 
-      // 成功完成后清理
+      // Cleanup after successful completion
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsGenerating(false);
       router.push("/trips");
-    } catch (err: any) {
-      if (err.name === 'Aborted' || err.message === 'Aborted') {
-        console.log("Request successfully aborted.");
-      } else {
-        setIsGenerating(false);
-      }
-    }
+    } catch (err: unknown) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setIsGenerating(false);
+
+      // Optionally handle non-abort errors here
+      if (!(err instanceof Error && (err.name === "AbortError" || err.message === "Aborted"))) {
+  }
+}
   };
 
   return (

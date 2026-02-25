@@ -2,7 +2,7 @@
 
 import type { DiningReservation } from "../TripWorkspace";
 import type { Reservation } from "@/features/trips/mock";
-import { formatTime, buildGoogleMapsSrc } from "@/features/trips/utils/dining";
+import { formatDateTime, buildGoogleMapsSrc, formatPartySize } from "@/features/trips/utils/dining";
 
 const GOOGLE_MAPS_EMBED_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY;
 
@@ -19,6 +19,7 @@ export function RestaurantDetailModal({
   onClose,
   googleMapsKey,
 }: RestaurantDetailModalProps) {
+  const mapsKey = googleMapsKey ?? GOOGLE_MAPS_EMBED_KEY;
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
@@ -66,9 +67,10 @@ export function RestaurantDetailModal({
                   </p>
                 </div>
                 <div className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
-                  {restaurant.priceTier
-                    ? `💲 ${restaurant.priceTier}`
-                    : "$ Price TBD"}
+                  <span>💵</span>
+                  {restaurant.priceLevel
+                    ? restaurant.priceLevel.toLowerCase()
+                    : "price tbd"}
                 </div>
               </div>
 
@@ -86,7 +88,7 @@ export function RestaurantDetailModal({
                   Reservation Time
                 </p>
                 <p className="mt-1 text-sm text-slate-900">
-                  {formatTime(reservation?.datetimeLocal ?? restaurant.time ?? null)}
+                  {formatDateTime(reservation?.datetimeLocal ?? restaurant.time ?? null)}
                 </p>
               </div>
 
@@ -95,7 +97,7 @@ export function RestaurantDetailModal({
                   Party Size
                 </p>
                 <p className="mt-1 text-sm text-slate-900">
-                  {restaurant.partySize ?? "—"} guests
+                  {formatPartySize(reservation?.partySize)}
                 </p>
               </div>
 
@@ -123,28 +125,28 @@ export function RestaurantDetailModal({
             </div>
 
             {/* Google Maps */}
-            {(googleMapsKey || GOOGLE_MAPS_EMBED_KEY) && restaurant.address && (
+            {restaurant.address && (
               <div>
                 <p className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">
                   Location
                 </p>
-                <div className="rounded-xl border border-slate-200 overflow-hidden">
-                  <iframe
-                    width="100%"
-                    height="320"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen={true}
-                    referrerPolicy="no-referrer-when-downgrade"
-                    src={buildGoogleMapsSrc(restaurant, googleMapsKey || GOOGLE_MAPS_EMBED_KEY)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {!googleMapsKey && !GOOGLE_MAPS_EMBED_KEY && (
-              <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-700">
-                Map unavailable (missing API key)
+                {mapsKey ? (
+                  <div className="rounded-xl border border-slate-200 overflow-hidden">
+                    <iframe
+                      width="100%"
+                      height="320"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen={true}
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={buildGoogleMapsSrc(restaurant, mapsKey)}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-700">
+                    Map unavailable
+                  </div>
+                )}
               </div>
             )}
 

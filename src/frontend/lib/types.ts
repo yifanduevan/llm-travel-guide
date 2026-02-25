@@ -14,6 +14,7 @@ export interface TripDto {
 
 export interface AccommodationDto {
   id?: string;
+  tripId?: string;
   name?: string;
   address?: string;
   roomType?: string;
@@ -34,6 +35,7 @@ export interface DiningReservationDto {
   time?: string;
   cuisine?: string;
   priceTier?: string;
+  priceLevel?: "LOW" | "MEDIUM" | "HIGH";
   status?: string;
   address?: string;
   notes?: string;
@@ -65,6 +67,7 @@ export interface TransportSegmentDto {
 
 export interface ActivityDto {
   id?: string;
+  tripId?: string;
   title?: string;
   price?: string;
   rating?: string;

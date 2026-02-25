@@ -65,12 +65,19 @@ export function DiningView({ tripId, tripStartDate }: DiningViewProps) {
   const handleSaveReservation = async (reservation: Reservation) => {
     try {
       setApiError(null);
-      const restaurantKey = getRestaurantKey(
-        allRestaurants.find(
-          (r) =>
-            modalState.type === "reservation" && r.id === modalState.restaurantId
-        )!
+      if (modalState.type !== "reservation") {
+        throw new Error("Invalid modal state for saving a reservation.");
+      }
+
+      const restaurant = allRestaurants.find(
+        (r) => r.id === modalState.restaurantId
       );
+
+      if (!restaurant) {
+        throw new Error("Restaurant not found for the given reservation.");
+      }
+
+      const restaurantKey = getRestaurantKey(restaurant);
       upsertReservation(restaurantKey, reservation);
       closeModal();
     } catch (err) {
@@ -160,7 +167,7 @@ export function DiningView({ tripId, tripStartDate }: DiningViewProps) {
         </div>
         <button
           onClick={openAddRestaurantModal}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary"
         >
           <span className="material-symbols-outlined mr-1 inline-block">
             restaurant

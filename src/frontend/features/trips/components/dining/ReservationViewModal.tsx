@@ -2,7 +2,7 @@
 
 import type { DiningReservation } from "../TripWorkspace";
 import type { Reservation } from "@/features/trips/mock";
-import { formatReservedTime } from "@/features/trips/utils/dining";
+import { formatDateTime, formatPartySize } from "@/features/trips/utils/dining";
 
 type ReservationViewModalProps = {
   restaurant: DiningReservation;
@@ -69,7 +69,7 @@ export function ReservationViewModal({
                 Guests
               </p>
               <p className="mt-1 font-semibold text-slate-900">
-                {reservation?.partySize ?? "—"}
+                {formatPartySize(reservation?.partySize)}
               </p>
             </div>
 
@@ -79,7 +79,7 @@ export function ReservationViewModal({
               </p>
               <p className="mt-1 font-semibold text-slate-900">
                 {reservation
-                  ? formatReservedTime(reservation.datetimeLocal)
+                  ? formatDateTime(reservation.datetimeLocal)
                   : "—"}
               </p>
             </div>

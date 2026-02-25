@@ -99,7 +99,7 @@ export default function AddSegmentModal({ onSave, onClose }: AddSegmentModalProp
     if (formState.departureTime && formState.arrivalTime) {
       const departure = new Date(formState.departureTime).getTime();
       const arrival = new Date(formState.arrivalTime).getTime();
-      if (!Number.isNaN(departure) && !Number.isNaN(arrival) && departure > arrival) {
+      if (!Number.isNaN(departure) && !Number.isNaN(arrival) && departure >= arrival) {
         nextErrors.arrivalTime = "Arrival must be after departure.";
       }
     }

@@ -2,7 +2,7 @@
 
 import type { DiningReservation } from "../TripWorkspace";
 import type { Reservation } from "@/features/trips/mock";
-import { normalizeStatus, formatTime } from "@/features/trips/utils/dining";
+import { normalizeStatus, formatDateTime, formatPartySize } from "@/features/trips/utils/dining";
 
 type RestaurantCardProps = {
   restaurant: DiningReservation;
@@ -25,8 +25,10 @@ export function RestaurantCard({
   const notesValue = reservation?.notes ?? restaurant.notes ?? "No notes";
   const confirmationValue =
     reservation?.confirmationCode ?? restaurant.confirmationCode ?? "—";
-  const guestValue = reservation?.partySize ?? restaurant.partySize;
   const timeValue = reservation?.datetimeLocal ?? restaurant.time ?? null;
+  const priceLabel = restaurant.priceLevel
+    ? restaurant.priceLevel.toLowerCase()
+    : "price tbd";
 
   return (
     <div
@@ -68,16 +70,15 @@ export function RestaurantCard({
             </p>
           </div>
           <div className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 leading-none shrink-0">
-            {restaurant.priceTier
-              ? `💲 ${restaurant.priceTier}`
-              : "$ Price TBD"}
+            <span>💵</span>
+            {priceLabel}
           </div>
         </div>
 
         <div className="grid gap-2 text-sm text-slate-600">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-base text-slate-500">schedule</span>
-            <span>{formatTime(timeValue)}</span>
+            <span>{formatDateTime(timeValue)}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-base text-slate-500">
@@ -87,7 +88,7 @@ export function RestaurantCard({
           </div>
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-base text-slate-500">group</span>
-            <span>{guestValue ?? "—"} guests</span>
+            <span>{formatPartySize(reservation?.partySize)}</span>
           </div>
         </div>
 

@@ -4,6 +4,17 @@ import type { DiningReservation } from "../components/TripWorkspace";
 import type { DiningReservationDto } from "@/lib/types";
 import { slugify } from "@/features/trips/utils/dining";
 
+type PriceLevel = "LOW" | "MEDIUM" | "HIGH";
+
+function normalizePriceLevel(value?: string | null): PriceLevel | null {
+  if (!value) return null;
+  const normalized = value.toString().trim().toLowerCase();
+  if (normalized === "low") return "LOW";
+  if (normalized === "medium") return "MEDIUM";
+  if (normalized === "high") return "HIGH";
+  return null;
+}
+
 function mapDiningReservationDto(
   apiRes: DiningReservationDto,
   tripId: string,
@@ -20,7 +31,7 @@ function mapDiningReservationDto(
     name,
     time: apiRes.time ?? null,
     cuisine: apiRes.cuisine ?? null,
-    priceTier: apiRes.priceTier ?? null,
+    priceLevel: normalizePriceLevel(apiRes.priceLevel ?? apiRes.priceTier ?? null),
     status: apiRes.status ?? "pending",
     address: apiRes.address ?? null,
     notes: apiRes.notes ?? null,

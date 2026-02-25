@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import TabNavigation from "./TabNavigation";
 import ItineraryView from "./ItineraryView";
@@ -51,7 +51,7 @@ export type DiningReservation = {
   name: string;
   time: string | null;
   cuisine: string | null;
-  priceTier: string | null;
+  priceLevel: "LOW" | "MEDIUM" | "HIGH" | null;
   status: string;
   address: string | null;
   notes: string | null;
@@ -97,7 +97,7 @@ export default function TripWorkspace({
           ).toLocaleDateString()}`
       : null;
 
-  const viewContent = (() => {
+  const viewContent = useMemo(() => {
     switch (currentView) {
       case "itinerary":
         return <ItineraryView editable={isEditable} trip={trip} tripId={tripId} />;
@@ -137,7 +137,14 @@ export default function TripWorkspace({
           </div>
         );
     }
-  })();
+  }, [
+    currentView,
+    isEditable,
+    trip,
+    tripId,
+    transportSegments,
+    accommodations,
+  ]);
 
   return (
     <div className="space-y-6">

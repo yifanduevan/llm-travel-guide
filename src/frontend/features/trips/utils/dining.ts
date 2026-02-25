@@ -4,18 +4,17 @@ export function normalizeStatus(status?: string | null): "confirmed" | "pending"
   return status?.toLowerCase() === "confirmed" ? "confirmed" : "pending";
 }
 
-export function formatTime(value: string | null): string {
+export function formatDateTime(value?: string | null): string {
   if (!value) return "TBD";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
-}
-
-export function formatReservedTime(value: string): string {
-  if (!value) return "TBD";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function toDateTimeLocal(value: string): string {
@@ -42,6 +41,12 @@ export function getRestaurantKey(restaurant: DiningReservation): string {
     `${restaurant.name}-${restaurant.address ?? ""}-${restaurant.time ?? ""}`
   );
   return fallback || restaurant.name;
+}
+
+export function formatPartySize(value?: number | null): string {
+  if (value === null || value === undefined) return "TBD";
+  if (value === 1) return "1 guest";
+  return `${value} guests`;
 }
 
 export function buildGoogleMapsSrc(

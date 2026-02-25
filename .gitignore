@@ -72,6 +72,7 @@ target/
 build/
 out/
 *.log
+src/backend/.m2/
 
 # =========================
 # Environment & Secrets

@@ -33,6 +33,7 @@ export const mockTrip: TripDto = mockTrips[0];
 export const mockAccommodations: AccommodationDto[] = [
   {
     id: '1',
+    tripId: '1',
     name: 'Hotel Paris',
     address: '123 Rue de Paris',
     roomType: 'Double',
@@ -48,6 +49,7 @@ export const mockAccommodations: AccommodationDto[] = [
   },
   {
     id: '2',
+    tripId: '2',
     name: 'Hotel Tokyo Trip Nishinippori',
     address: '5 Chome-18-14 Nishinippori',
     roomType: 'Single',
@@ -70,7 +72,7 @@ export const mockDiningReservations: Array<DiningReservationDto & { tripId: stri
     name: 'Le Gourmet',
     time: '2023-06-05T19:00:00Z',
     cuisine: 'French',
-    priceTier: 'high',
+    priceLevel: 'HIGH',
     status: 'confirmed',
     address: '456 Avenue Gourmet',
     notes: 'Reservation for 2',
@@ -84,7 +86,7 @@ export const mockDiningReservations: Array<DiningReservationDto & { tripId: stri
     name: 'Sushi Zen',
     time: '2023-07-08T20:00:00Z',
     cuisine: 'Japanese',
-    priceTier: 'medium',
+    priceLevel: 'MEDIUM',
     status: 'confirmed',
     address: '789 Ginza District, Tokyo',
     notes: 'Authentic sushi experience',
@@ -99,7 +101,7 @@ export const mockDiningReservations: Array<DiningReservationDto & { tripId: stri
     name: 'GINZA syabuki',
     time: '2023-07-09T20:00:00Z',
     cuisine: 'Japanese',
-    priceTier: 'high',
+    priceLevel: 'HIGH',
     status: 'confirmed',
     address: '日本〒104-0061 Tokyo, Chuo City, Ginza, 5 Chome−9−5 チアーズ銀座 4F',
     notes: 'Very good services',
@@ -275,6 +277,7 @@ export const mockTransportSegments: TransportSegmentDto[] = [
 export const mockActivities = [
   {
     id: '1',
+    tripId: '1',
     title: 'Louvre Museum Masterpieces Tour',
     price: '€75',
     rating: '4.9',
@@ -288,6 +291,7 @@ export const mockActivities = [
   },
   {
     id: '1',
+    tripId: '1',
     title: 'Seine River Sunset Cruise',
     price: '€25',
     rating: '4.7',
@@ -300,6 +304,7 @@ export const mockActivities = [
   },
   {
     id: '1',
+    tripId: '1',
     title: 'Montmartre Cheese & Wine',
     price: '€95',
     rating: '5.0',
@@ -311,6 +316,7 @@ export const mockActivities = [
   },
   {
     id: '2',
+    tripId: '2',
     title: 'Tokyo Food Tour',
     price: '¥8,500',
     rating: '4.8',
@@ -324,6 +330,7 @@ export const mockActivities = [
   },
   {
     id: '2',
+    tripId: '2',
     title: 'Shibuya Sky',
     price: '¥2,000',
     rating: '4.6',

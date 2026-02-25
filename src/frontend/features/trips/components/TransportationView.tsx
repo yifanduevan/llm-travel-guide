@@ -198,7 +198,7 @@ export default function TransportationView({ segments }: Props) {
                           href={ticketsUrl ?? undefined}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-900 hover:text-white"
+                          className="flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-300 hover:text-white"
                         >
                           <span className="material-symbols-outlined text-base">
                             confirmation_number

@@ -19,6 +19,7 @@ type Props = {
 };
 
 export default function AccommodationsView({ trip, tripId, accommodations }: Props) {
+  const googleMapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY;
   const initial = useMemo(
     () =>
       accommodations && accommodations.length > 0 ? accommodations : [],
@@ -420,16 +421,25 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
 
                 return (
                   <>
-                    <div className="relative h-48 overflow-hidden rounded-2xl bg-slate-100 pointer-events-auto" style={{ touchAction: "pan-x pan-y" }}>
-                      <iframe
-                        title="Stay map"
-                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY}&q=${encodeURIComponent(query)}`}
-                        className="h-[250px] w-[295px] rounded-2xl border border-slate-200"
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        allowFullScreen
-                      />
-                    </div>
+                    {googleMapsKey ? (
+                      <div
+                        className="relative w-full min-h-[300px] overflow-hidden rounded-2xl bg-slate-100 pointer-events-auto"
+                        style={{ touchAction: "pan-x pan-y" }}
+                      >
+                        <iframe
+                          title="Stay map"
+                          src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsKey}&q=${encodeURIComponent(query)}`}
+                          className="absolute inset-0 h-full w-full border border-slate-200"
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          allowFullScreen
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex min-h-[300px] items-center justify-center rounded-2xl bg-slate-100 text-sm text-slate-600">
+                        Map unavailable
+                      </div>
+                    )}
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`}
                       target="_blank"

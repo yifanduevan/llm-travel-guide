@@ -33,7 +33,7 @@ export async function getTrip(id: string): Promise<TripDto> {
  */
 export async function getAccommodations(tripId: string): Promise<AccommodationDto[]> {
   if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return mockAccommodations.filter(a => a.id === tripId); // Assuming id matches tripId for simplicity
+    return mockAccommodations.filter(a => a.tripId === tripId);
   }
   return apiGet<AccommodationDto[]>(`/api/trips/${tripId}/accommodations`);
 }
@@ -69,7 +69,7 @@ export async function getTransportSegments(tripId: string): Promise<TransportSeg
  */
 export async function getActivities(tripId: string): Promise<ActivityDto[]> {
   if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return mockActivities.filter(a => a.id === tripId);
+    return mockActivities.filter(a => a.tripId === tripId);
   }
   return apiGet<ActivityDto[]>(`/api/trips/${tripId}/activities`);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type DateTimePickerProps = {
   value: string;
@@ -81,34 +81,31 @@ export function DateTimePicker({
   });
   const pickerRef = useRef<HTMLDivElement>(null);
 
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (!isOpen) return;
+    const el = pickerRef.current;
+    if (el && !el.contains(event.target as Node)) {
+      setIsOpen(false);
+      onClose?.();
+    }
+  }, [isOpen, onClose]);
+
+  const handleEscapeKey = useCallback((event: KeyboardEvent) => {
+    if (!isOpen) return;
+    if (event.key === "Escape") {
+      setIsOpen(false);
+      onClose?.();
+    }
+  }, [isOpen, onClose]);
+
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        pickerRef.current &&
-        !pickerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-        onClose?.();
-      }
-    }
-
-    function handleEscapeKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-        onClose?.();
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleEscapeKey);
-    }
-
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscapeKey);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscapeKey);
     };
-  }, [isOpen, onClose]);
+  }, [handleClickOutside, handleEscapeKey]);
 
   const monthName = new Date(displayMonth.year, displayMonth.month).toLocaleDateString(
     "en-US",

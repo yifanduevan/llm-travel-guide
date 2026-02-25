@@ -11,7 +11,7 @@ type AddRestaurantFormState = {
   name: string;
   address: string;
   cuisine: string;
-  priceTier: string;
+  priceLevel: "LOW" | "MEDIUM" | "HIGH";
   imageUrl: string;
   notes: string;
   // Reservation fields (optional)
@@ -42,12 +42,12 @@ export function AddRestaurantModal({
     name: "",
     address: "",
     cuisine: "",
-    priceTier: "$",
+    priceLevel: "MEDIUM",
     imageUrl: "",
     notes: "",
     addReservation: false,
     reservationName: "",
-    reservationPartySize: 2,
+    reservationPartySize: 1,
     reservationTime: "",
     reservationCode: "",
     reservationNotes: "",
@@ -68,7 +68,21 @@ export function AddRestaurantModal({
         notes: formState.reservationNotes,
       };
       const reservationErrors = validateReservation(reservationData);
-      Object.assign(errors, reservationErrors);
+      const reservationErrorMap: Record<string, keyof AddRestaurantFormState> = {
+        name: "reservationName",
+        partySize: "reservationPartySize",
+        datetimeLocal: "reservationTime",
+        confirmationCode: "reservationCode",
+        notes: "reservationNotes",
+      };
+      const remappedReservationErrors: Record<string, string> = {};
+      Object.entries(reservationErrors).forEach(([key, message]) => {
+        const mappedKey = reservationErrorMap[key];
+        if (mappedKey) {
+          remappedReservationErrors[mappedKey] = message;
+        }
+      });
+      Object.assign(errors, remappedReservationErrors);
     }
 
     if (Object.keys(errors).length > 0) {
@@ -77,13 +91,13 @@ export function AddRestaurantModal({
     }
 
     // Create new restaurant
-    const restaurantId = `${tripId}-${Date.now()}`;
+    const restaurantId = `${tripId}-${crypto.randomUUID()}`;
     const newRestaurant: DiningReservation = {
       id: restaurantId,
       name: formState.name,
       address: formState.address,
       cuisine: formState.cuisine,
-      priceTier: formState.priceTier,
+      priceLevel: formState.priceLevel,
       imageUrl: formState.imageUrl,
       notes: formState.notes,
       time: null,
@@ -124,7 +138,7 @@ export function AddRestaurantModal({
         className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="border-b border-slate-200 px-6 py-4">
+        <div className="border-b border-slate-300 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
@@ -214,21 +228,27 @@ export function AddRestaurantModal({
                     <label className="text-xs font-bold uppercase tracking-widest text-slate-500">
                       Price level
                     </label>
-                    <select
-                      value={formState.priceTier}
-                      onChange={(event) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          priceTier: event.target.value,
-                        }))
-                      }
-                      className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                    >
-                      <option value="$">$ (Budget)</option>
-                      <option value="$$">$$ (Moderate)</option>
-                      <option value="$$$">$$$ (Upscale)</option>
-                      <option value="$$$$">$$$$ (Fine dining)</option>
-                    </select>
+                    <div className="mt-2 inline-flex w-full items-center rounded-xl border border-slate-200 bg-white p-1">
+                      {(["LOW", "MEDIUM", "HIGH"] as const).map((level) => (
+                        <button
+                          key={level}
+                          type="button"
+                          onClick={() =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              priceLevel: level,
+                            }))
+                          }
+                          className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold uppercase transition ${
+                            formState.priceLevel === level
+                              ? "bg-slate-900 text-white"
+                              : "text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          {level.toLowerCase()}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
@@ -278,6 +298,9 @@ export function AddRestaurantModal({
                     setFormState((prev) => ({
                       ...prev,
                       addReservation: event.target.checked,
+                      reservationPartySize: event.target.checked
+                        ? Math.max(prev.reservationPartySize, 1)
+                        : prev.reservationPartySize,
                     }))
                   }
                   className="h-4 w-4 rounded border-slate-300 text-slate-900"
