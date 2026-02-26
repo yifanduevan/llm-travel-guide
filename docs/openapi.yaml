@@ -34,6 +34,24 @@ paths:
                 $ref: '#/components/schemas/TripDto'
         '400':
           description: Bad Request
+  /api/trips/generate:
+    post:
+      summary: Generate trip draft with AI notes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripGenerateRequest'
+      responses:
+        '200':
+          description: Generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDto'
+        '400':
+          description: Bad Request
   /api/trips/{id}:
     parameters:
       - name: id
@@ -359,6 +377,28 @@ components:
           type: string
         status:
           type: string
+    TripGenerateRequest:
+      type: object
+      required: [titleOrDestination, startDate, endDate, travelers, budget]
+      properties:
+        titleOrDestination:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        travelers:
+          type: string
+          enum: [SOLO, COUPLE, FAMILY, GROUP]
+        budget:
+          type: string
+          enum: [BUDGET, MEDIUM, LUXURY]
+        interests:
+          type: array
+          items:
+            type: string
     AccommodationDto:
       type: object
       properties:

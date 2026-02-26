@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DateRangePicker from "@/features/trips/components/DateRangePicker";
+import { generateTrip } from "@/features/trips/api";
 
 type UserPreferences = {
   destination: string;
@@ -34,6 +35,7 @@ export default function AddTripPage() {
     travelers: "Couple",
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -79,27 +81,46 @@ export default function AddTripPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!prefs.destination || !prefs.startDate) return;
+    if (!prefs.destination || !prefs.startDate || !prefs.endDate) return;
 
     setIsGenerating(true);
-    
-    // Prepare trip data payload with all required fields
+    setSubmitError(null);
+
+    const travelersMap: Record<UserPreferences["travelers"], "SOLO" | "COUPLE" | "FAMILY" | "GROUP"> = {
+      Solo: "SOLO",
+      Couple: "COUPLE",
+      Family: "FAMILY",
+      Group: "GROUP",
+    };
+    const budgetMap: Record<UserPreferences["budget"], "BUDGET" | "MEDIUM" | "LUXURY"> = {
+      Budget: "BUDGET",
+      Medium: "MEDIUM",
+      Luxury: "LUXURY",
+    };
+
     const tripPayload = {
-      titleOrDestination: prefs.destination,
+      titleOrDestination: prefs.destination.trim(),
       startDate: prefs.startDate,
       endDate: prefs.endDate,
-      travelers: prefs.travelers,
-      budget: prefs.budget,
+      travelers: travelersMap[prefs.travelers],
+      budget: budgetMap[prefs.budget],
       interests: prefs.interests,
     };
-    
-    // Placeholder: simulate trip creation with payload
-    console.log("Creating trip with payload:", tripPayload);
-    
-    setTimeout(() => {
-      setIsGenerating(false);
+
+    try {
+      const createdTrip = await generateTrip(tripPayload);
+      if (createdTrip.id) {
+        router.push(`/trips/${createdTrip.id}`);
+        return;
+      }
       router.push("/trips");
-    }, 900);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to generate trip.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -127,6 +148,11 @@ export default function AddTripPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {submitError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
               <span className="material-symbols-outlined text-base">location_on</span>
