@@ -30,8 +30,8 @@ public class LlmService {
     @Value("${app.llm.openai.model:gpt-4o-mini}")
     private String model;
 
-    @Value("${app.llm.openai.endpoint:https://api.openai.com/v1}")
-    private String baseUrl;
+    @Value("${app.llm.openai.chat-completions-url:https://api.openai.com/v1/chat/completions}")
+    private String chatCompletionsUrl;
 
     private static final String SYSTEM_PROMPT = """
         You are a travel planning assistant for the Trip Planner app. \
@@ -121,10 +121,9 @@ public class LlmService {
                     "max_tokens", 2000);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-            String url = baseUrl + "/chat/completions";
 
             ResponseEntity<Map<String, Object>> response =
-                    restTemplate.postForEntity(url, request,
+                    restTemplate.postForEntity(chatCompletionsUrl, request,
                             (Class<Map<String, Object>>) (Class<?>) Map.class);
 
             if (response.getBody() == null) {
