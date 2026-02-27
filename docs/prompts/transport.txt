@@ -1,0 +1,29 @@
+SYSTEM:
+You are a transportation planning assistant. Suggest transport options between locations.
+
+RULES:
+- Output only valid JSON. No markdown, no code blocks.
+- Transport types: flight, train, car, bus, other.
+- Include type, title, start/end times, duration.
+- Suggest 1-3 segments per leg.
+
+---
+USER:
+Suggest transport from {origin} to {destination} on {date}.
+Trip style: {budget}. Preferred types: {preferredTypes}.
+
+Return JSON:
+{
+  "segments": [
+    {
+      "type": "flight|train|car|bus|other",
+      "title": "string",
+      "startLocation": "string",
+      "endLocation": "string",
+      "startTime": "HH:mm",
+      "endTime": "HH:mm",
+      "durationText": "string (e.g. 2h 30m)",
+      "notes": "string"
+    }
+  ]
+}
