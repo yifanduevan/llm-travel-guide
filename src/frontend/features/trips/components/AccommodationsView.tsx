@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Accommodation } from "./TripWorkspace";
+import { getAccommodations } from "@/features/trips/api";
+import type { AccommodationDto } from "@/lib/types";
+import OverlayModal from "./OverlayModal";
+import ConfirmOverlay from "./ConfirmOverlay";
 
 type TripInfo = {
   titleOrDestination?: string;
@@ -17,6 +21,58 @@ type Props = {
   trip?: TripInfo;
   accommodations?: Accommodation[];
 };
+
+type CreateAccommodationRequest = {
+  name: string;
+  address: string | null;
+  roomType: string | null;
+  checkIn: string | null;
+  checkOut: string | null;
+  rate: string | null;
+  currency: string | null;
+  status: string | null;
+  confirmationCode: string | null;
+  tags: string[] | null;
+  imageUrl: string | null;
+  notes: string | null;
+};
+
+const defaultForm: CreateAccommodationRequest = {
+  name: "",
+  address: "",
+  roomType: "",
+  checkIn: "",
+  checkOut: "",
+  rate: "",
+  currency: "USD",
+  status: "PENDING",
+  confirmationCode: "",
+  tags: [],
+  imageUrl: "",
+  notes: "",
+};
+
+async function createAccommodation(
+  tripId: string,
+  payload: CreateAccommodationRequest,
+): Promise<Accommodation> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  const res = await fetch(
+    `${baseUrl}/api/trips/${tripId}/accommodations`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || "Failed to create accommodation");
+  }
+  return (await res.json()) as Accommodation;
+}
 
 export default function AccommodationsView({ trip, tripId, accommodations }: Props) {
   const googleMapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY;
@@ -100,15 +156,21 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
       hasBudget: hasBudgetValue,
     };
   }, [stays, trip]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [formState, setFormState] = useState<CreateAccommodationRequest>(defaultForm);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Accommodation | null>(null);
 
   useEffect(() => {
     const load = async () => {
       if (!tripId) return;
       try {
         setLoading(true);
-        const { getAccommodations } = await import("@/features/trips/api");
         const data = await getAccommodations(tripId);
-        setStays(data as unknown as Accommodation[]);
+        setStays(data.map(mapAccommodationDto));
       } finally {
         setLoading(false);
       }
@@ -118,7 +180,90 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
     }
   }, [tripId, accommodations]);
 
+  function mapAccommodationDto(dto: AccommodationDto): Accommodation {
+    return {
+      id: dto.id ?? "",
+      name: dto.name ?? "",
+      address: dto.address ?? null,
+      roomType: dto.roomType ?? null,
+      checkIn: dto.checkIn ?? null,
+      checkOut: dto.checkOut ?? null,
+      rate: dto.rate != null ? String(dto.rate) : null,
+      currency: dto.currency ?? null,
+      status: dto.status ?? "PENDING",
+      confirmationCode: dto.confirmationCode ?? null,
+      tags: dto.tags ?? null,
+      imageUrl: dto.imageUrl ?? null,
+      notes: dto.notes ?? null,
+    };
+  }
+
   const noData = stays.length === 0;
+
+  const handleDelete = async (stayId: string) => {
+    if (!tripId || !stayId) return;
+    setDeletingId(stayId);
+    setListError(null);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+      const res = await fetch(
+        `${baseUrl}/api/trips/${tripId}/accommodations/${stayId}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(message || "Failed to delete accommodation");
+      }
+      setStays((prev) => prev.filter((stay) => stay.id !== stayId));
+    } catch (err) {
+      setListError(err instanceof Error ? err.message : "Unable to delete accommodation");
+    } finally {
+      setDeletingId(null);
+      setConfirmTarget(null);
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!tripId) return;
+    setSaving(true);
+    setError(null);
+
+    const payload: CreateAccommodationRequest = {
+      ...formState,
+      name: formState.name.trim() || "New stay",
+      address: formState.address?.trim() || null,
+      roomType: formState.roomType?.trim() || null,
+      checkIn: formState.checkIn || null,
+      checkOut: formState.checkOut || null,
+      rate:
+        formState.rate !== null &&
+        formState.rate !== undefined &&
+        formState.rate.trim() !== ""
+          ? formState.rate.trim()
+          : null,
+      currency: formState.currency?.trim() || null,
+      status: formState.status?.trim().toUpperCase() || null,
+      confirmationCode: formState.confirmationCode?.trim() || null,
+      tags:
+        formState.tags && Array.isArray(formState.tags)
+          ? formState.tags
+          : null,
+      imageUrl: formState.imageUrl?.trim() || null,
+      notes: formState.notes?.trim() || null,
+    };
+
+    try {
+      const created = await createAccommodation(tripId, payload);
+      setStays((prev) => [created, ...prev]);
+      setShowAddModal(false);
+      setFormState(defaultForm);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save accommodation");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-10 lg:flex-row">
@@ -161,7 +306,11 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
                 </span>
               </button>
             </div>
-            <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              onClick={() => setShowAddModal(true)}
+            >
               <span className="material-symbols-outlined text-lg">
                 add_business
               </span>
@@ -169,6 +318,12 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
             </button>
           </div>
         </div>
+
+        {listError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {listError}
+          </div>
+        )}
 
         {loading && (
           <p className="text-sm text-slate-600">Loading accommodations...</p>
@@ -382,6 +537,21 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
                       <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </button>
                   </div>
+                  )}
+                  <button
+                    onClick={() => setConfirmTarget(stay)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100"
+                    title="Delete accommodation"
+                    disabled={deletingId === stay.id}
+                  >
+                    {deletingId === stay.id ? (
+                      <span className="material-symbols-outlined animate-spin text-sm">
+                        progress_activity
+                      </span>
+                    ) : (
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    )}
+                  </button>
                 </div>
               );
             })}
@@ -523,6 +693,257 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
           </div>
         </div>
       </aside>
+
+      <OverlayModal
+        open={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          setError(null);
+        }}
+        title="Add accommodation"
+        description="Capture where you're staying so everyone stays in sync."
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+              onClick={() => {
+                setShowAddModal(false);
+                setError(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="accommodation-form"
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              disabled={saving}
+            >
+              {saving && (
+                <span className="material-symbols-outlined animate-spin text-base">
+                  progress_activity
+                </span>
+              )}
+              Save stay
+            </button>
+          </div>
+        }
+      >
+        <form
+          id="accommodation-form"
+          className="space-y-4"
+          onSubmit={handleSubmit}
+        >
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Name
+                <span className="text-red-500">*</span>
+              </span>
+              <input
+                required
+                value={formState.name}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="Hotel name"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Room type
+              </span>
+              <input
+                value={formState.roomType ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, roomType: e.target.value }))
+                }
+                placeholder="Queen suite"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Check-in date
+              </span>
+              <input
+                type="date"
+                value={formState.checkIn ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, checkIn: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Check-out date
+              </span>
+              <input
+                type="date"
+                value={formState.checkOut ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, checkOut: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Rate per night
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={formState.rate ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    rate: e.target.value,
+                  }))
+                }
+                placeholder="250"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Currency
+              </span>
+              <input
+                value={formState.currency ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, currency: e.target.value }))
+                }
+                placeholder="USD"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Status
+              </span>
+              <select
+                value={formState.status ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, status: e.target.value }))
+                }
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              >
+                <option value="PENDING">Pending</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700 md:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Address
+              </span>
+              <input
+                value={formState.address ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, address: e.target.value }))
+                }
+                placeholder="123 Main St, City"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Confirmation code
+              </span>
+              <input
+                value={formState.confirmationCode ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, confirmationCode: e.target.value }))
+                }
+                placeholder="ABC123"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Image URL
+              </span>
+              <input
+                value={formState.imageUrl ?? ""}
+                onChange={(e) =>
+                  setFormState((prev) => ({ ...prev, imageUrl: e.target.value }))
+                }
+                placeholder="https://images..."
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Tags (comma separated)
+              </span>
+              <input
+                value={(formState.tags ?? []).join(", ")}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    tags: e.target.value
+                      ? e.target.value.split(",").map((t) => t.trim()).filter(Boolean)
+                      : [],
+                  }))
+                }
+                placeholder="wifi, parking"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+          </div>
+
+          <label className="space-y-2 text-sm text-slate-700">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Notes
+            </span>
+            <textarea
+              rows={3}
+              value={formState.notes ?? ""}
+              onChange={(e) =>
+                setFormState((prev) => ({ ...prev, notes: e.target.value }))
+              }
+              placeholder="Check-in instructions, parking, etc."
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+            />
+          </label>
+        </form>
+      </OverlayModal>
+
+      <ConfirmOverlay
+        open={!!confirmTarget}
+        title="Delete accommodation"
+        message={
+          confirmTarget
+            ? `Delete "${confirmTarget.name}" from this trip? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        busy={deletingId !== null}
+        onCancel={() => setConfirmTarget(null)}
+        onConfirm={() => confirmTarget && handleDelete(confirmTarget.id)}
+      />
     </div>
   );
 }
