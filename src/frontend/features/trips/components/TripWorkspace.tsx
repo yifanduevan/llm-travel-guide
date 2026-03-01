@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import TabNavigation from "./TabNavigation";
 import ItineraryView from "./ItineraryView";
 import DiningView from "./DiningView";
-import TransportationView from "./TransportationView";
+import TransportationView from "@/features/trips/components/TransportationView";
 import AccommodationsView from "./AccommodationsView";
 import ActivitiesView from "./ActivitiesView";
 import { ViewName } from "../types";
@@ -58,6 +58,7 @@ export type DiningReservation = {
   confirmationCode: string | null;
   partySize: number | null;
   imageUrl: string | null;
+  priceTier?: string | null
 };
 
 export type Accommodation = {
@@ -109,13 +110,7 @@ export default function TripWorkspace({
           />
         );
       case "transportation":
-        return <TransportationView trip={trip} segments={transportSegments} />;
-        return (
-          <TransportationView
-            tripId={tripId}
-            trip={trip}
-            segments={transportSegments} />
-        );
+        return <TransportationView tripId={tripId} segments={transportSegments} />;
       case "accommodation":
         return (
           <AccommodationsView
