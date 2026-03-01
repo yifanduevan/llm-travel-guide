@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, useRef } from "react"; 
 import { useRouter } from "next/navigation";
 import DateRangePicker from "@/features/trips/components/DateRangePicker";
 
@@ -35,15 +35,20 @@ export default function AddTripPage() {
   });
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Control refs for cancellation and timeout management
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous;
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
 
-  // Close on Escape key
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -56,15 +61,11 @@ export default function AddTripPage() {
 
   const selectedCount = useMemo(() => prefs.interests.length, [prefs.interests]);
 
-  // Validation: check if form can be submitted
   const isFormValid = useMemo(() => {
     const hasDestination = !!prefs.destination.trim();
     const hasStartDate = !!prefs.startDate;
     const hasEndDate = !!prefs.endDate;
-    
-    // For date comparison, use string comparison (YYYY-MM-DD format is lexicographically sortable)
     const datesValid = hasStartDate && hasEndDate && prefs.endDate! >= prefs.startDate!;
-    
     return hasDestination && hasStartDate && hasEndDate && datesValid;
   }, [prefs]);
 
@@ -77,29 +78,55 @@ export default function AddTripPage() {
     }));
   };
 
+  const handleCancel = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    setIsGenerating(false);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    
+    if (isGenerating) {
+      handleCancel();
+      return;
+    }
+
     if (!prefs.destination || !prefs.startDate) return;
 
     setIsGenerating(true);
-    
-    // Prepare trip data payload with all required fields
-    const tripPayload = {
-      titleOrDestination: prefs.destination,
-      startDate: prefs.startDate,
-      endDate: prefs.endDate,
-      travelers: prefs.travelers,
-      budget: prefs.budget,
-      interests: prefs.interests,
-    };
-    
-    // Placeholder: simulate trip creation with payload
-    console.log("Creating trip with payload:", tripPayload);
-    
-    setTimeout(() => {
+
+    // Initialize abort controller and 10-second timeout
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    timeoutRef.current = setTimeout(() => {
+      handleCancel();
+    }, 10000);
+
+    try {
+
+      // Simulate AI API request
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, 5000); // Simulate a 5-second AI response time
+        controller.signal.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new Error("Aborted"));
+        });
+      });
+
+      // Cleanup after successful completion
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsGenerating(false);
       router.push("/trips");
-    }, 900);
+    } catch (err: unknown) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setIsGenerating(false);
+
+      // Optionally handle non-abort errors here
+      if (!(err instanceof Error && (err.name === "AbortError" || err.message === "Aborted"))) {
+  }
+}
   };
 
   return (
@@ -230,15 +257,19 @@ export default function AddTripPage() {
 
           <button
             type="submit"
-            disabled={isGenerating || !isFormValid}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+            disabled={!isGenerating && !isFormValid}
+            className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-4 text-white transition ${
+              isGenerating 
+                ? "bg-red-500 hover:bg-red-600 shadow-inner" 
+                : "bg-slate-900 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+            }`}
           >
             {isGenerating ? (
               <>
                 <span className="material-symbols-outlined animate-spin text-lg">
                   autorenew
                 </span>
-                Generating itinerary...
+                Generating... (Click to Cancel)
               </>
             ) : (
               <>Generate my guide</>
