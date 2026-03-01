@@ -537,7 +537,6 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
                       <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </button>
                   </div>
-                  )}
                   <button
                     onClick={() => setConfirmTarget(stay)}
                     className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100"
