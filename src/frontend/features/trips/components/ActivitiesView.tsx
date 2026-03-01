@@ -29,7 +29,7 @@ type Props = {
 
 const fallbackActivities: ActivityItem[] = [];
 
-export default function ActivitiesView({ trip, tripId, activities }: Props) {
+export default function ActivitiesView({tripId, activities }: Props) {
   const initial = useMemo(
     () => (activities && activities.length > 0 ? activities : fallbackActivities),
     [activities],

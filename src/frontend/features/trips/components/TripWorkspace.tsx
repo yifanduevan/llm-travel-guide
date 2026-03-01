@@ -10,6 +10,7 @@ import AccommodationsView from "./AccommodationsView";
 import ActivitiesView from "./ActivitiesView";
 import { ViewName } from "../types";
 import type { TransportMode } from "../iconMap";
+import type { PriceLevel } from "../utils/diningPrice";
 
 type TripWorkspaceProps = {
   tripId: string;
@@ -51,14 +52,13 @@ export type DiningReservation = {
   name: string;
   time: string | null;
   cuisine: string | null;
-  priceLevel: "LOW" | "MEDIUM" | "HIGH" | null;
+  priceLevel: PriceLevel | null;
   status: string;
   address: string | null;
   notes: string | null;
   confirmationCode: string | null;
   partySize: number | null;
   imageUrl: string | null;
-  priceTier?: string | null
 };
 
 export type Accommodation = {

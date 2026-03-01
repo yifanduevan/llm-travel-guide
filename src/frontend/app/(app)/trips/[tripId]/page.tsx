@@ -6,6 +6,7 @@ import {
   TransportSegment,
 } from "@/features/trips/components/TripWorkspace";
 import { normalizeTransportMode } from "@/features/trips/iconMap";
+import { toPriceLevel } from "@/features/trips/utils/diningPrice";
 import { getTrip, getTransportSegments, getDiningReservations, getAccommodations } from "@/features/trips/api";
 import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from "@/lib/types";
 
@@ -53,7 +54,7 @@ function mapDiningReservationDto(apiRes: DiningReservationDto): DiningReservatio
     name: apiRes.name || '',
     time: apiRes.time || null,
     cuisine: apiRes.cuisine || null,
-    priceTier: apiRes.priceTier || null,
+    priceLevel: toPriceLevel(apiRes.priceTier ?? null),
     status: apiRes.status || '',
     address: apiRes.address || null,
     notes: apiRes.notes || null,

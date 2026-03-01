@@ -35,7 +35,6 @@ export interface DiningReservationDto {
   time?: string;
   cuisine?: string;
   priceTier?: string;
-  priceLevel?: "LOW" | "MEDIUM" | "HIGH";
   status?: string;
   address?: string;
   notes?: string;

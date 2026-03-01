@@ -8,6 +8,7 @@ import { apiGet, apiPost, apiPut } from "@/lib/apiClient";
 import type { DiningReservationDto } from "@/lib/types";
 import type { DiningReservation } from "../components/TripWorkspace";
 import { getRestaurantKey } from "../utils/dining";
+import { toBackendPriceTier } from "@/features/trips/utils/diningPrice";
 
 type UseReservationsResult = {
   reservations: Record<string, Reservation | null>;
@@ -50,13 +51,6 @@ export function useReservations(
     restaurant: DiningReservation,
     reservation: Reservation
   ) => {
-    const toPriceTier = (priceLevel: DiningReservation["priceLevel"]): string | undefined => {
-      if (priceLevel === "LOW") return "TIER_1";
-      if (priceLevel === "MEDIUM") return "TIER_2";
-      if (priceLevel === "HIGH") return "TIER_3";
-      return undefined;
-    };
-
     const toOffsetDateTime = (value: string): string | undefined => {
       if (!value) return undefined;
       const dt = new Date(value);
@@ -68,7 +62,7 @@ export function useReservations(
       name: reservation.name,
       time: toOffsetDateTime(reservation.datetimeLocal),
       cuisine: restaurant.cuisine ?? undefined,
-      priceTier: toPriceTier(restaurant.priceLevel),
+      priceTier: toBackendPriceTier(restaurant.priceLevel),
       status: "CONFIRMED",
       address: restaurant.address ?? undefined,
       notes: reservation.notes || undefined,
