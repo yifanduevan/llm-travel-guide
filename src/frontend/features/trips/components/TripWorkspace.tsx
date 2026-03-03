@@ -5,10 +5,12 @@ import { useSearchParams } from "next/navigation";
 import TabNavigation from "./TabNavigation";
 import ItineraryView from "./ItineraryView";
 import DiningView from "./DiningView";
-import TransportationView from "./TransportationView";
+import TransportationView from "@/features/trips/components/TransportationView";
 import AccommodationsView from "./AccommodationsView";
 import ActivitiesView from "./ActivitiesView";
 import { ViewName } from "../types";
+import type { TransportMode } from "../iconMap";
+import type { PriceLevel } from "../utils/diningPrice";
 
 type TripWorkspaceProps = {
   tripId: string;
@@ -26,16 +28,22 @@ type TripWorkspaceProps = {
 
 export type TransportSegment = {
   id: string;
-  type: string;
+  mode: TransportMode;
+  type?: string | null;
   title: string;
+  customModeName?: string;
   startTime: string | null;
+  startTz?: string | null;
   startLocation: string | null;
   endTime: string | null;
+  endTz?: string | null;
   endLocation: string | null;
   durationText: string | null;
   status: string;
-  confirmationCode: string | null;
-  ticketUrl: string | null;
+  confirmationCode?: string | null;
+  ticketsUrl?: string | null;
+  ticketUrl?: string | null;
+  notes?: string | null;
   completed: boolean;
 };
 
@@ -44,7 +52,7 @@ export type DiningReservation = {
   name: string;
   time: string | null;
   cuisine: string | null;
-  priceTier: string | null;
+  priceLevel: PriceLevel | null;
   status: string;
   address: string | null;
   notes: string | null;
@@ -73,7 +81,6 @@ export default function TripWorkspace({
   tripId,
   trip,
   transportSegments,
-  diningReservations,
   accommodations,
   editable = false,
 }: TripWorkspaceProps) {
@@ -94,22 +101,16 @@ export default function TripWorkspace({
   const viewContent = useMemo(() => {
     switch (currentView) {
       case "itinerary":
-        return <ItineraryView editable={isEditable} trip={trip} />;
+        return <ItineraryView editable={isEditable} trip={trip} tripId={tripId} />;
       case "dining":
         return (
           <DiningView
-            trip={trip}
             tripId={tripId}
-            reservations={diningReservations}
+            tripStartDate={trip?.startDate ?? null}
           />
         );
       case "transportation":
-        return (
-          <TransportationView
-            tripId={tripId}
-            trip={trip}
-            segments={transportSegments} />
-        );
+        return <TransportationView tripId={tripId} segments={transportSegments} />;
       case "accommodation":
         return (
           <AccommodationsView
@@ -127,7 +128,7 @@ export default function TripWorkspace({
               {currentView}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              {editable
+              {isEditable
                 ? "Editing enabled — wire up fields for this section."
                 : "Viewing only — click Edit to make changes."}
             </p>
@@ -137,7 +138,14 @@ export default function TripWorkspace({
           </div>
         );
     }
-  }, [currentView, editable]);
+  }, [
+    currentView,
+    isEditable,
+    trip,
+    tripId,
+    transportSegments,
+    accommodations,
+  ]);
 
   return (
     <div className="space-y-6">

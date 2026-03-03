@@ -26,7 +26,7 @@ export default function DateRangePicker({
   const popoverRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  // Convert Date to ISO string (local date, not UTC)
+  // Convert Date to ISO string
   const dateToISO = (date: Date | undefined): string | null => {
     if (!date) return null;
     const year = date.getFullYear();
