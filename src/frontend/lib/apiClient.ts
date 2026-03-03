@@ -1,19 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
 
-async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`${res.status} ${path}`);
-  }
-  return res.json() as T;
-}
-
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, { method: 'GET' });
   if (!res.ok) {
@@ -22,16 +8,19 @@ export async function apiGet<T>(path: string): Promise<T> {
   return res.json() as T;
 }
 
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  return requestJson<T>(path, {
+export async function apiPost<TRequest, TResponse>(path: string, payload: TRequest): Promise<TResponse> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
-    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
   });
-}
 
-export async function apiPut<T>(path: string, body: unknown): Promise<T> {
-  return requestJson<T>(path, {
-    method: 'PUT',
-    body: JSON.stringify(body),
-  });
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || `${res.status} ${path}`);
+  }
+
+  return res.json() as TResponse;
 }
