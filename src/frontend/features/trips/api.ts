@@ -41,7 +41,7 @@ export async function getTrip(id: string): Promise<TripDto> {
  */
 export async function getAccommodations(tripId: string): Promise<AccommodationDto[]> {
   if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return mockAccommodations.filter(a => a.id === tripId); // Assuming id matches tripId for simplicity
+    return mockAccommodations.filter(a => a.tripId === tripId);
   }
   return apiGet<AccommodationDto[]>(`/api/trips/${tripId}/accommodations`);
 }
@@ -53,7 +53,7 @@ export async function getAccommodations(tripId: string): Promise<AccommodationDt
  */
 export async function getDiningReservations(tripId: string): Promise<DiningReservationDto[]> {
   if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return mockDiningReservations.filter(d => d.id === tripId);
+    return mockDiningReservations.filter(d => d.tripId === tripId);
   }
   return apiGet<DiningReservationDto[]>(`/api/trips/${tripId}/dining-reservations`);
 }
@@ -65,7 +65,7 @@ export async function getDiningReservations(tripId: string): Promise<DiningReser
  */
 export async function getTransportSegments(tripId: string): Promise<TransportSegmentDto[]> {
   if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return mockTransportSegments.filter(t => t.id === tripId);
+    return mockTransportSegments.filter(t => t.tripId === tripId);
   }
   return apiGet<TransportSegmentDto[]>(`/api/trips/${tripId}/transport-segments`);
 }
@@ -77,7 +77,7 @@ export async function getTransportSegments(tripId: string): Promise<TransportSeg
  */
 export async function getActivities(tripId: string): Promise<ActivityDto[]> {
   if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return mockActivities.filter(a => a.id === tripId);
+    return mockActivities.filter(a => a.tripId === tripId);
   }
   return apiGet<ActivityDto[]>(`/api/trips/${tripId}/activities`);
 }

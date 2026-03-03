@@ -17,14 +17,15 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-  mvc:
-    cors:
-      mappings:
-        "[/api/**]":
-          allowed-origins: "http://localhost:3000"
-          allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
-          allowed-headers: "*"
-          allow-credentials: true
+  web:
+    mvc:
+      cors:
+        mappings:
+          "/api/**":
+            allowed-origins: "http://localhost:3000"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
 
 logging:
   level:
@@ -34,6 +35,6 @@ logging:
 app:
   llm:
     openai:
-      api-key: ${OPENAI_API_KEY:API_KEY_HERE}
+      api-key: ${OPENAI_API_KEY:}
       model: ${OPENAI_MODEL:gpt-4.1-mini}
       endpoint: ${OPENAI_ENDPOINT:https://api.openai.com/v1/responses}
