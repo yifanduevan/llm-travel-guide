@@ -83,6 +83,22 @@ export async function getActivities(tripId: string): Promise<ActivityDto[]> {
   return apiGet<ActivityDto[]>(`/api/trips/${tripId}/activities`);
 }
 
+export async function generateTrip(request: GenerateTripRequest, init: RequestInit = {}): Promise<TripDto> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+    return {
+      id: crypto.randomUUID(),
+      titleOrDestination: request.titleOrDestination,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      travelers: request.travelers,
+      budget: request.budget,
+      status: "DRAFT",
+      notes: `Mock generated plan for ${request.titleOrDestination}.`,
+    };
+  }
+  return apiPost<TripDto>('/api/trips/generate', request, init);
+}
+
 /**
  * Get itinerary for a trip.
  * @param tripId - The trip ID.
