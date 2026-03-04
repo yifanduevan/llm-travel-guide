@@ -1,4 +1,4 @@
-import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from '../../lib/types';
+import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto, ActivityDto } from '../../lib/types';
 import type { ItineraryDay } from './itineraryTypes';
 
 export const mockTrips: TripDto[] = [
