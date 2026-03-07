@@ -31,3 +31,10 @@ logging:
   level:
     org.flywaydb.core: info
     org.hibernate.SQL: debug
+
+app:
+  llm:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_MODEL:gpt-4.1-mini}
+      endpoint: ${OPENAI_ENDPOINT:https://api.openai.com/v1/responses}

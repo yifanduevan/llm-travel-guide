@@ -1,7 +1,16 @@
-import { apiGet } from '../../lib/apiClient';
+import { apiGet, apiPost } from '../../lib/apiClient';
 import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto, ActivityDto } from '../../lib/types';
 import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, mockActivities, getMockItinerary } from './mock';
 import type { ItineraryDay, ItineraryItem } from './itineraryTypes';
+
+export type GenerateTripRequest = {
+  titleOrDestination: string;
+  startDate: string;
+  endDate: string;
+  travelers: "SOLO" | "COUPLE" | "FAMILY" | "GROUP";
+  budget: "BUDGET" | "MEDIUM" | "LUXURY";
+  interests: string[];
+};
 
 /**
  * Get all trips.
@@ -72,6 +81,22 @@ export async function getActivities(tripId: string): Promise<ActivityDto[]> {
     return mockActivities.filter(a => a.tripId === tripId);
   }
   return apiGet<ActivityDto[]>(`/api/trips/${tripId}/activities`);
+}
+
+export async function generateTrip(request: GenerateTripRequest, init: RequestInit = {}): Promise<TripDto> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+    return {
+      id: crypto.randomUUID(),
+      titleOrDestination: request.titleOrDestination,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      travelers: request.travelers,
+      budget: request.budget,
+      status: "DRAFT",
+      notes: `Mock generated plan for ${request.titleOrDestination}.`,
+    };
+  }
+  return apiPost<TripDto>('/api/trips/generate', request, init);
 }
 
 /**

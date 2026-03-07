@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState, useRef } from "react"; 
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DateRangePicker from "@/features/trips/components/DateRangePicker";
+import { generateTrip } from "@/features/trips/api";
 
 type UserPreferences = {
   destination: string;
@@ -23,6 +24,19 @@ const interestOptions = [
   "Nightlife",
 ];
 
+const travelerMap: Record<UserPreferences["travelers"], "SOLO" | "COUPLE" | "FAMILY" | "GROUP"> = {
+  Solo: "SOLO",
+  Couple: "COUPLE",
+  Family: "FAMILY",
+  Group: "GROUP",
+};
+
+const budgetMap: Record<UserPreferences["budget"], "BUDGET" | "MEDIUM" | "LUXURY"> = {
+  Budget: "BUDGET",
+  Medium: "MEDIUM",
+  Luxury: "LUXURY",
+};
+
 export default function AddTripPage() {
   const router = useRouter();
   const [prefs, setPrefs] = useState<UserPreferences>({
@@ -34,6 +48,7 @@ export default function AddTripPage() {
     travelers: "Couple",
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Control refs for cancellation and timeout management
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -82,6 +97,7 @@ export default function AddTripPage() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (abortControllerRef.current) abortControllerRef.current.abort();
     setIsGenerating(false);
+    setSubmitError("Trip generation cancelled.");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -92,41 +108,59 @@ export default function AddTripPage() {
       return;
     }
 
-    if (!prefs.destination || !prefs.startDate) return;
+    if (!prefs.destination || !prefs.startDate || !prefs.endDate) return;
 
+    setSubmitError(null);
     setIsGenerating(true);
 
-    // Initialize abort controller and 10-second timeout
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    timeoutRef.current = setTimeout(() => {
-      handleCancel();
-    }, 10000);
-
     try {
+      const trip = await generateTrip(
+        {
+          titleOrDestination: prefs.destination.trim(),
+          startDate: prefs.startDate,
+          endDate: prefs.endDate,
+          travelers: travelerMap[prefs.travelers],
+          budget: budgetMap[prefs.budget],
+          interests: prefs.interests,
+        },
+        { signal: controller.signal },
+      );
 
-      // Simulate AI API request
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, 5000); // Simulate a 5-second AI response time
-        controller.signal.addEventListener("abort", () => {
-          clearTimeout(timer);
-          reject(new Error("Aborted"));
-        });
-      });
-
-      // Cleanup after successful completion
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsGenerating(false);
-      router.push("/trips");
+      abortControllerRef.current = null;
+      router.push(trip.id ? `/trips/${trip.id}` : "/trips");
     } catch (err: unknown) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsGenerating(false);
+      abortControllerRef.current = null;
 
-      // Optionally handle non-abort errors here
-      if (!(err instanceof Error && (err.name === "AbortError" || err.message === "Aborted"))) {
-  }
-}
+      if (err instanceof Error && (err.name === "AbortError" || err.message === "Aborted")) {
+        setSubmitError("Trip generation cancelled.");
+        return;
+      }
+
+      if (err instanceof Error) {
+        if (err.message.startsWith("400")) {
+          setSubmitError("Trip generation request is invalid. Check the dates and required fields.");
+          return;
+        }
+        if (err.message.startsWith("500")) {
+          setSubmitError("Backend trip generation failed. Check the backend logs and database connection.");
+          return;
+        }
+        setSubmitError(err.message);
+        return;
+      }
+
+      setSubmitError("Trip generation failed.");
+    } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    }
   };
 
   return (
@@ -154,6 +188,11 @@ export default function AddTripPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {submitError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
               <span className="material-symbols-outlined text-base">location_on</span>

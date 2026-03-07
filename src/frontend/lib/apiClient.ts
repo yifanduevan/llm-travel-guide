@@ -22,8 +22,9 @@ export async function apiGet<T>(path: string): Promise<T> {
   return res.json() as T;
 }
 
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+export async function apiPost<T>(path: string, body: unknown, init: RequestInit = {}): Promise<T> {
   return requestJson<T>(path, {
+    ...init,
     method: 'POST',
     body: JSON.stringify(body),
   });
