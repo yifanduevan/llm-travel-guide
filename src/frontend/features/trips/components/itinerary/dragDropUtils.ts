@@ -8,6 +8,7 @@ import type {
 
 const DAY_DROP_ZONE_PREFIX = "itinerary-day-drop-zone-";
 let nextClientItemId = 1;
+let nextClientDayId = 1;
 
 type ItemLocation = {
   dayIndex: number;
@@ -21,6 +22,12 @@ function createClientItemId(): string {
   return `itinerary-item-${id}`;
 }
 
+function createClientDayId(): string {
+  const id = nextClientDayId;
+  nextClientDayId += 1;
+  return `itinerary-day-${id}`;
+}
+
 export function withClientItemId(item: ItineraryItem): ClientItineraryItem {
   return {
     ...item,
@@ -30,6 +37,7 @@ export function withClientItemId(item: ItineraryItem): ClientItineraryItem {
 
 export function toClientDay(day: ItineraryDay): ClientItineraryDay {
   return {
+    clientDayId: createClientDayId(),
     ...day,
     items: day.items.map((item) => withClientItemId(item)),
   };
@@ -56,7 +64,9 @@ export function toBuildableDay(entry: ItineraryTimelineEntry): ItineraryDay {
   }
 
   return {
-    ...entry,
+    label: entry.label,
+    date: entry.date,
+    active: entry.active,
     items: entry.items.map((item) => ({
       icon: item.icon,
       title: item.title,
@@ -72,6 +82,7 @@ export function createDayFromPlaceholder(
   placeholder: EmptyDayPlaceholder,
 ): ClientItineraryDay {
   return {
+    clientDayId: placeholder.clientDayId,
     label: `Day ${placeholder.dayNumber}: New day`,
     date: placeholder.date,
     active: false,

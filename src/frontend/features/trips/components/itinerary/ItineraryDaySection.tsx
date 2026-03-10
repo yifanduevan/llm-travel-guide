@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { ClientItineraryDay, EditableItineraryItem } from "./types";
@@ -47,12 +48,16 @@ export default function ItineraryDaySection({
   onSaveDayTitle,
   onCancelDayTitle,
 }: ItineraryDaySectionProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: dropZoneId,
-    disabled: !dragEnabled,
-  });
+  const droppableConfig = useMemo(
+    () => ({
+      id: dropZoneId,
+      disabled: !dragEnabled,
+    }),
+    [dropZoneId, dragEnabled],
+  );
+  const { setNodeRef, isOver } = useDroppable(droppableConfig);
 
-  const itemIds = day.items.map((item) => item.clientId);
+  const itemIds = useMemo(() => day.items.map((item) => item.clientId), [day.items]);
 
   return (
     <div className="relative">

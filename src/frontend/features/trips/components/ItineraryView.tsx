@@ -7,8 +7,11 @@ import {
   DragOverlay,
   KeyboardSensor,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -118,23 +121,54 @@ export default function ItineraryView({
   const [editingDayTitleDraft, setEditingDayTitleDraft] = useState("");
   const [activeDragItemId, setActiveDragItemId] = useState<string | null>(null);
   const dragSnapshotRef = useRef<ItineraryTimelineEntry[] | null>(null);
+  const daysRef = useRef<ItineraryTimelineEntry[]>([]);
+  const activeDragItemIdRef = useRef<string | null>(null);
+  const dragOverFrameRef = useRef<number | null>(null);
+  const pendingDragOverIdRef = useRef<string | null>(null);
+  const lastAppliedOverIdRef = useRef<string | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
+  const pointerSensorOptions = useMemo(
+    () => ({
       activationConstraint: {
         distance: 6,
       },
     }),
-    useSensor(KeyboardSensor, {
+    [],
+  );
+  const keyboardSensorOptions = useMemo(
+    () => ({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
+    [],
   );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, pointerSensorOptions),
+    useSensor(KeyboardSensor, keyboardSensorOptions),
+  );
+  const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+
+    const intersections = rectIntersection(args);
+    if (intersections.length > 0) {
+      return intersections;
+    }
+
+    return closestCenter(args);
+  }, []);
 
   const resolvedTripId = useMemo(() => tripId ?? trip?.id ?? "", [tripId, trip?.id]);
   const activeDragItem = useMemo(
     () => (activeDragItemId ? findItemById(days, activeDragItemId) : null),
     [activeDragItemId, days],
   );
+
+  useEffect(() => {
+    daysRef.current = days;
+  }, [days]);
 
   useEffect(() => {
     let isActive = true;
@@ -242,6 +276,7 @@ export default function ItineraryView({
       }
 
       const placeholder = {
+        clientDayId: targetEntry.clientDayId,
         type: "emptyDay",
         dayNumber: getDayNumberFromLabel(
           targetEntry.label,
@@ -356,6 +391,7 @@ export default function ItineraryView({
         }
 
         return {
+          clientDayId: entry.clientDayId,
           label: `Day ${entry.dayNumber}: New day`,
           date: entry.date,
           active: false,
@@ -379,54 +415,126 @@ export default function ItineraryView({
     setEditingDayTitleDraft("");
   };
 
-  const resetDragState = () => {
-    setActiveDragItemId(null);
-    dragSnapshotRef.current = null;
-  };
+  const clearScheduledDragOver = useCallback(() => {
+    if (dragOverFrameRef.current !== null) {
+      cancelAnimationFrame(dragOverFrameRef.current);
+      dragOverFrameRef.current = null;
+    }
 
-  const handleDragStart = (event: DragStartEvent) => {
+    pendingDragOverIdRef.current = null;
+  }, []);
+
+  const applyDragMove = useCallback((overId: string) => {
+    const activeId = activeDragItemIdRef.current;
+    if (!activeId) {
+      return;
+    }
+
+    if (lastAppliedOverIdRef.current === overId) {
+      return;
+    }
+
+    setDays((prev) => moveItemForDrag(prev, activeId, overId));
+    lastAppliedOverIdRef.current = overId;
+  }, []);
+
+  const resetDragState = useCallback(() => {
+    clearScheduledDragOver();
+    setActiveDragItemId(null);
+    activeDragItemIdRef.current = null;
+    dragSnapshotRef.current = null;
+    lastAppliedOverIdRef.current = null;
+  }, [clearScheduledDragOver]);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     if (!editable) return;
 
     const activeId = String(event.active.id);
-    if (!findItemById(days, activeId)) {
+    const currentDays = daysRef.current;
+    if (!findItemById(currentDays, activeId)) {
       return;
     }
 
-    dragSnapshotRef.current = days;
+    dragSnapshotRef.current = currentDays;
+    activeDragItemIdRef.current = activeId;
+    pendingDragOverIdRef.current = null;
+    lastAppliedOverIdRef.current = null;
     setActiveDragItemId(activeId);
-  };
+  }, [editable]);
 
-  const handleDragOver = (event: DragOverEvent) => {
-    if (!editable || !activeDragItemId) return;
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      if (!editable || !activeDragItemIdRef.current) return;
 
-    const overId = event.over?.id ? String(event.over.id) : null;
-    if (!overId) return;
+      const overId = event.over?.id ? String(event.over.id) : null;
+      if (!overId) return;
 
-    setDays((prev) => moveItemForDrag(prev, activeDragItemId, overId));
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    if (!activeDragItemId) return;
-
-    const overId = event.over?.id ? String(event.over.id) : null;
-    if (!overId) {
-      if (dragSnapshotRef.current) {
-        setDays(dragSnapshotRef.current);
+      if (
+        pendingDragOverIdRef.current === overId ||
+        lastAppliedOverIdRef.current === overId
+      ) {
+        return;
       }
+
+      pendingDragOverIdRef.current = overId;
+      if (dragOverFrameRef.current !== null) {
+        return;
+      }
+
+      dragOverFrameRef.current = requestAnimationFrame(() => {
+        dragOverFrameRef.current = null;
+        const pendingOverId = pendingDragOverIdRef.current;
+        pendingDragOverIdRef.current = null;
+
+        if (!pendingOverId) {
+          return;
+        }
+
+        applyDragMove(pendingOverId);
+      });
+    },
+    [applyDragMove, editable],
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      if (!activeDragItemIdRef.current) return;
+
+      const overId = event.over?.id
+        ? String(event.over.id)
+        : pendingDragOverIdRef.current;
+
+      clearScheduledDragOver();
+
+      if (!overId) {
+        if (dragSnapshotRef.current) {
+          setDays(dragSnapshotRef.current);
+        }
+        resetDragState();
+        return;
+      }
+
+      applyDragMove(overId);
       resetDragState();
-      return;
-    }
+    },
+    [applyDragMove, clearScheduledDragOver, resetDragState],
+  );
 
-    setDays((prev) => moveItemForDrag(prev, activeDragItemId, overId));
-    resetDragState();
-  };
-
-  const handleDragCancel = () => {
+  const handleDragCancel = useCallback(() => {
     if (dragSnapshotRef.current) {
       setDays(dragSnapshotRef.current);
     }
+
     resetDragState();
-  };
+  }, [resetDragState]);
+
+  useEffect(() => {
+    return () => {
+      if (dragOverFrameRef.current !== null) {
+        cancelAnimationFrame(dragOverFrameRef.current);
+      }
+    };
+  }, []);
 
   const handleSaveDayTitle = () => {
     if (editingDayTitleDayIndex === null) return;
@@ -525,7 +633,7 @@ export default function ItineraryView({
               {editable ? (
                 <DndContext
                   sensors={sensors}
-                  collisionDetection={closestCenter}
+                  collisionDetection={collisionDetectionStrategy}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
                   onDragEnd={handleDragEnd}
@@ -535,7 +643,7 @@ export default function ItineraryView({
                     if (isEmptyDayPlaceholder(entry)) {
                       return (
                         <ItineraryEmptyDaySection
-                          key={`empty-day-${entry.dayNumber}-${dayIndex}`}
+                          key={entry.clientDayId}
                           entry={entry}
                           dayIndex={dayIndex}
                           editable={editable}
@@ -550,7 +658,7 @@ export default function ItineraryView({
 
                     return (
                       <ItineraryDaySection
-                        key={`${entry.label}-${dayIndex}`}
+                        key={entry.clientDayId}
                         day={entry}
                         dayIndex={dayIndex}
                         editable={editable}
@@ -603,7 +711,7 @@ export default function ItineraryView({
                   if (isEmptyDayPlaceholder(entry)) {
                     return (
                       <ItineraryEmptyDaySection
-                        key={`empty-day-${entry.dayNumber}-${dayIndex}`}
+                        key={entry.clientDayId}
                         entry={entry}
                         dayIndex={dayIndex}
                         editable={false}
@@ -618,7 +726,7 @@ export default function ItineraryView({
 
                   return (
                     <ItineraryDaySection
-                      key={`${entry.label}-${dayIndex}`}
+                      key={entry.clientDayId}
                       day={entry}
                       dayIndex={dayIndex}
                       editable={false}

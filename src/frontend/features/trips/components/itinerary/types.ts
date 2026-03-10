@@ -18,6 +18,7 @@ export type ClientItineraryItem = ItineraryItem & {
 };
 
 export type ClientItineraryDay = {
+  clientDayId: string;
   label: string;
   date: string;
   active?: boolean;
@@ -25,6 +26,7 @@ export type ClientItineraryDay = {
 };
 
 export type EmptyDayPlaceholder = {
+  clientDayId: string;
   type: "emptyDay";
   dayNumber: number;
   date: string;
