@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import type { EmptyDayPlaceholder } from "./types";
 
@@ -18,10 +19,14 @@ export default function ItineraryEmptyDaySection({
   dropZoneId,
   onAddDay,
 }: ItineraryEmptyDaySectionProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: dropZoneId,
-    disabled: !editable,
-  });
+  const droppableConfig = useMemo(
+    () => ({
+      id: dropZoneId,
+      disabled: !editable,
+    }),
+    [dropZoneId, editable],
+  );
+  const { setNodeRef, isOver } = useDroppable(droppableConfig);
 
   return (
     <div className="relative">
