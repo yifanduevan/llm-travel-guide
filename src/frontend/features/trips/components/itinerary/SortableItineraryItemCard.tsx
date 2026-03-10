@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { ClientItineraryItem } from "./types";
@@ -21,15 +20,11 @@ export default function SortableItineraryItemCard({
   onEdit,
   onDelete,
 }: SortableItineraryItemCardProps) {
-  const sortableConfig = useMemo(
-    () => ({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({
       id,
       disabled: !editable,
-    }),
-    [id, editable],
-  );
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable(sortableConfig);
+    });
 
   const style = {
     transform: CSS.Transform.toString(transform),

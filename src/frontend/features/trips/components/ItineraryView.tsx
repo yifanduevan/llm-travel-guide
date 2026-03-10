@@ -1,7 +1,48 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { getItinerary, generateItinerary } from "@/features/trips/api";
-import type { ItineraryDay } from "@/features/trips/itineraryTypes";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  closestCenter,
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { generateItinerary, getItinerary } from "@/features/trips/api";
+import type { ItineraryItem } from "@/features/trips/itineraryTypes";
+import ConfirmOverlay from "./ConfirmOverlay";
+import EditItineraryItemModal from "./itinerary/EditItineraryItemModal";
+import ItineraryDaySection from "./itinerary/ItineraryDaySection";
+import ItineraryEmptyDaySection from "./itinerary/ItineraryEmptyDaySection";
+import ItineraryItemCard from "./itinerary/ItineraryItemCard";
+import PackingListPanel from "./itinerary/PackingListPanel";
+import { buildNextItineraryDay, splitDayLabel } from "./itinerary/dayUtils";
+import {
+  findItemById,
+  getDayDropZoneId,
+  hydrateTimelineDays,
+  isEmptyDayPlaceholder,
+  moveItemForDrag,
+  toBuildableDay,
+  toClientDay,
+  withClientItemId,
+} from "./itinerary/dragDropUtils";
+import {
+  formatPickerTimeToDisplay,
+  parseDisplayTimeToPicker,
+} from "./itinerary/timeUtils";
+import type {
+  EditableItineraryItem,
+  EditingItemForm,
+  EditingItemTarget,
+  ItineraryTimelineEntry,
+} from "./itinerary/types";
 
 type ItineraryViewProps = {
   editable?: boolean;
@@ -27,9 +68,22 @@ export default function ItineraryView({
   tripId,
 }: ItineraryViewProps) {
   const [days, setDays] = useState<ItineraryTimelineEntry[]>([]);
+
+function getDayNumberFromLabel(label: string, fallback: number): number {
+  const match = label.match(/Day\s+(\d+)/i);
+  if (!match) return fallback;
+
+  const numeric = Number(match[1]);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+export default function ItineraryView({
+  editable = false,
+  trip,
+  tripId,
+}: ItineraryViewProps) {
+  const [days, setDays] = useState<ItineraryTimelineEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
     "idle",
@@ -64,54 +118,23 @@ export default function ItineraryView({
   const [editingDayTitleDraft, setEditingDayTitleDraft] = useState("");
   const [activeDragItemId, setActiveDragItemId] = useState<string | null>(null);
   const dragSnapshotRef = useRef<ItineraryTimelineEntry[] | null>(null);
-  const daysRef = useRef<ItineraryTimelineEntry[]>([]);
-  const activeDragItemIdRef = useRef<string | null>(null);
-  const dragOverFrameRef = useRef<number | null>(null);
-  const pendingDragOverIdRef = useRef<string | null>(null);
-  const lastAppliedOverIdRef = useRef<string | null>(null);
 
-  const pointerSensorOptions = useMemo(
-    () => ({
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
       activationConstraint: {
         distance: 6,
       },
     }),
-    [],
-  );
-  const keyboardSensorOptions = useMemo(
-    () => ({
+    useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
-    [],
   );
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, pointerSensorOptions),
-    useSensor(KeyboardSensor, keyboardSensorOptions),
-  );
-  const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
-    const pointerCollisions = pointerWithin(args);
-    if (pointerCollisions.length > 0) {
-      return pointerCollisions;
-    }
-
-    const intersections = rectIntersection(args);
-    if (intersections.length > 0) {
-      return intersections;
-    }
-
-    return closestCenter(args);
-  }, []);
 
   const resolvedTripId = useMemo(() => tripId ?? trip?.id ?? "", [tripId, trip?.id]);
   const activeDragItem = useMemo(
     () => (activeDragItemId ? findItemById(days, activeDragItemId) : null),
     [activeDragItemId, days],
   );
-
-  useEffect(() => {
-    daysRef.current = days;
-  }, [days]);
 
   useEffect(() => {
     let isActive = true;
@@ -126,6 +149,7 @@ export default function ItineraryView({
 
       if (isActive) {
         setErrorMessage(null);
+        setErrorMessage(null);
         setLoading(true);
       }
 
@@ -133,8 +157,11 @@ export default function ItineraryView({
         const data = await getItinerary(resolvedTripId);
         if (!isActive) return;
         setDays(hydrateTimelineDays(Array.isArray(data) ? data : []));
+        setDays(hydrateTimelineDays(Array.isArray(data) ? data : []));
       } catch {
         if (!isActive) return;
+        setStatus("error");
+        setErrorMessage("Unable to load itinerary. Please try again.");
         setStatus("error");
         setErrorMessage("Unable to load itinerary. Please try again.");
         setDays([]);
@@ -152,26 +179,83 @@ export default function ItineraryView({
     };
   }, [resolvedTripId, reloadTick]);
 
-  const handleGenerate = async () => {
-    if (!resolvedTripId || generating) return;
-    setGenerating(true);
-    setError(null);
+  useEffect(() => {
+    setStatus("idle");
+    setErrorMessage(null);
+  }, [resolvedTripId]);
+
+  const runGenerateItinerary = async () => {
+    setStatus("loading");
+    setErrorMessage(null);
+
     try {
       const data = await generateItinerary(resolvedTripId);
-      setDays(Array.isArray(data) ? data : []);
-    } catch {
-      setError("Failed to generate itinerary. Please try again.");
-    } finally {
-      setGenerating(false);
+      setDays(hydrateTimelineDays(data));
+      setStatus("success");
+    } catch (err) {
+      setStatus("error");
+      setErrorMessage(
+        err instanceof Error ? err.message : "Generation failed. Please try again.",
+      );
     }
   };
 
-  const addPackingItem = () => {
-    if (newItemText.trim()) {
-      setPackingItems([...packingItems, { text: newItemText.trim(), checked: false }]);
-      setNewItemText("");
-      setIsExpanded(false);
-    }
+  const handleConfirmDeleteItem = () => {
+    if (!confirmItemDeleteTarget) return;
+
+    setDays((prev) =>
+      prev
+        .map((entry, dayIndex) => {
+          if (isEmptyDayPlaceholder(entry)) {
+            return entry;
+          }
+
+          if (dayIndex !== confirmItemDeleteTarget.dayIndex) {
+            return entry;
+          }
+
+          return {
+            ...entry,
+            items: entry.items.filter(
+              (_, itemIndex) => itemIndex !== confirmItemDeleteTarget.itemIndex,
+            ),
+          };
+        })
+        .filter((entry) => isEmptyDayPlaceholder(entry) || entry.items.length > 0),
+    );
+
+    setConfirmItemDeleteTarget(null);
+  };
+
+  const handleConfirmDeleteDay = () => {
+    if (!confirmDayDeleteTarget) return;
+
+    setDays((prev) => {
+      const targetEntry = prev[confirmDayDeleteTarget.dayIndex];
+      if (!targetEntry || isEmptyDayPlaceholder(targetEntry)) {
+        return prev;
+      }
+
+      const isLastDayInTimeline = confirmDayDeleteTarget.dayIndex === prev.length - 1;
+      if (isLastDayInTimeline) {
+        return prev.filter((_, index) => index !== confirmDayDeleteTarget.dayIndex);
+      }
+
+      const placeholder = {
+        type: "emptyDay",
+        dayNumber: getDayNumberFromLabel(
+          targetEntry.label,
+          confirmDayDeleteTarget.dayIndex + 1,
+        ),
+        date: targetEntry.date,
+      } as const;
+
+      return prev.map((entry, index) =>
+        index === confirmDayDeleteTarget.dayIndex ? placeholder : entry,
+      );
+    });
+
+    setConfirmDayDeleteTarget(null);
   };
 
   const openEditItemModal = (
@@ -272,7 +356,6 @@ export default function ItineraryView({
         }
 
         return {
-          clientDayId: entry.clientDayId,
           label: `Day ${entry.dayNumber}: New day`,
           date: entry.date,
           active: false,
@@ -296,126 +379,54 @@ export default function ItineraryView({
     setEditingDayTitleDraft("");
   };
 
-  const clearScheduledDragOver = useCallback(() => {
-    if (dragOverFrameRef.current !== null) {
-      cancelAnimationFrame(dragOverFrameRef.current);
-      dragOverFrameRef.current = null;
-    }
-
-    pendingDragOverIdRef.current = null;
-  }, []);
-
-  const applyDragMove = useCallback((overId: string) => {
-    const activeId = activeDragItemIdRef.current;
-    if (!activeId) {
-      return;
-    }
-
-    if (lastAppliedOverIdRef.current === overId) {
-      return;
-    }
-
-    setDays((prev) => moveItemForDrag(prev, activeId, overId));
-    lastAppliedOverIdRef.current = overId;
-  }, []);
-
-  const resetDragState = useCallback(() => {
-    clearScheduledDragOver();
+  const resetDragState = () => {
     setActiveDragItemId(null);
-    activeDragItemIdRef.current = null;
     dragSnapshotRef.current = null;
-    lastAppliedOverIdRef.current = null;
-  }, [clearScheduledDragOver]);
+  };
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
+  const handleDragStart = (event: DragStartEvent) => {
     if (!editable) return;
 
     const activeId = String(event.active.id);
-    const currentDays = daysRef.current;
-    if (!findItemById(currentDays, activeId)) {
+    if (!findItemById(days, activeId)) {
       return;
     }
 
-    dragSnapshotRef.current = currentDays;
-    activeDragItemIdRef.current = activeId;
-    pendingDragOverIdRef.current = null;
-    lastAppliedOverIdRef.current = null;
+    dragSnapshotRef.current = days;
     setActiveDragItemId(activeId);
-  }, [editable]);
+  };
 
-  const handleDragOver = useCallback(
-    (event: DragOverEvent) => {
-      if (!editable || !activeDragItemIdRef.current) return;
+  const handleDragOver = (event: DragOverEvent) => {
+    if (!editable || !activeDragItemId) return;
 
-      const overId = event.over?.id ? String(event.over.id) : null;
-      if (!overId) return;
+    const overId = event.over?.id ? String(event.over.id) : null;
+    if (!overId) return;
 
-      if (
-        pendingDragOverIdRef.current === overId ||
-        lastAppliedOverIdRef.current === overId
-      ) {
-        return;
+    setDays((prev) => moveItemForDrag(prev, activeDragItemId, overId));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (!activeDragItemId) return;
+
+    const overId = event.over?.id ? String(event.over.id) : null;
+    if (!overId) {
+      if (dragSnapshotRef.current) {
+        setDays(dragSnapshotRef.current);
       }
-
-      pendingDragOverIdRef.current = overId;
-      if (dragOverFrameRef.current !== null) {
-        return;
-      }
-
-      dragOverFrameRef.current = requestAnimationFrame(() => {
-        dragOverFrameRef.current = null;
-        const pendingOverId = pendingDragOverIdRef.current;
-        pendingDragOverIdRef.current = null;
-
-        if (!pendingOverId) {
-          return;
-        }
-
-        applyDragMove(pendingOverId);
-      });
-    },
-    [applyDragMove, editable],
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      if (!activeDragItemIdRef.current) return;
-
-      const overId = event.over?.id
-        ? String(event.over.id)
-        : pendingDragOverIdRef.current;
-
-      clearScheduledDragOver();
-
-      if (!overId) {
-        if (dragSnapshotRef.current) {
-          setDays(dragSnapshotRef.current);
-        }
-        resetDragState();
-        return;
-      }
-
-      applyDragMove(overId);
       resetDragState();
-    },
-    [applyDragMove, clearScheduledDragOver, resetDragState],
-  );
+      return;
+    }
 
-  const handleDragCancel = useCallback(() => {
+    setDays((prev) => moveItemForDrag(prev, activeDragItemId, overId));
+    resetDragState();
+  };
+
+  const handleDragCancel = () => {
     if (dragSnapshotRef.current) {
       setDays(dragSnapshotRef.current);
     }
-
     resetDragState();
-  }, [resetDragState]);
-
-  useEffect(() => {
-    return () => {
-      if (dragOverFrameRef.current !== null) {
-        cancelAnimationFrame(dragOverFrameRef.current);
-      }
-    };
-  }, []);
+  };
 
   const handleSaveDayTitle = () => {
     if (editingDayTitleDayIndex === null) return;
@@ -453,26 +464,23 @@ export default function ItineraryView({
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-semibold text-slate-900">{header}</h2>
+            <h2 className="text-3xl font-semibold text-slate-900">{header}</h2>
             <p className="mt-1 text-sm text-slate-600">{dates}</p>
           </div>
-          <div className="flex items-center gap-3">
+          {!editable && (
             <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={generating || !resolvedTripId}
-              className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary disabled:cursor-not-allowed disabled:opacity-70"
+              onClick={runGenerateItinerary}
+              disabled={status === "loading"}
             >
-              <span className={`material-symbols-outlined text-lg ${generating ? "animate-spin" : ""}`}>
-                {generating ? "autorenew" : "auto_awesome"}
+              <span
+                className={`material-symbols-outlined text-lg ${status === "loading" ? "animate-spin" : ""}`}
+              >
+                {status === "loading" ? "autorenew" : "edit_calendar"}
               </span>
-              {generating ? "Generating..." : "Generate with AI"}
+              {status === "loading" ? "Generating..." : "Generate Itinerary"}
             </button>
-            <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
-              <span className="material-symbols-outlined text-lg">edit_calendar</span>
-              {editable ? "Edit dates" : "View dates"}
-            </button>
-          </div>
-
+          )}
         </div>
 
         {status === "loading" && (
@@ -517,7 +525,7 @@ export default function ItineraryView({
               {editable ? (
                 <DndContext
                   sensors={sensors}
-                  collisionDetection={collisionDetectionStrategy}
+                  collisionDetection={closestCenter}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
                   onDragEnd={handleDragEnd}
@@ -527,7 +535,7 @@ export default function ItineraryView({
                     if (isEmptyDayPlaceholder(entry)) {
                       return (
                         <ItineraryEmptyDaySection
-                          key={entry.clientDayId}
+                          key={`empty-day-${entry.dayNumber}-${dayIndex}`}
                           entry={entry}
                           dayIndex={dayIndex}
                           editable={editable}
@@ -542,7 +550,7 @@ export default function ItineraryView({
 
                     return (
                       <ItineraryDaySection
-                        key={entry.clientDayId}
+                        key={`${entry.label}-${dayIndex}`}
                         day={entry}
                         dayIndex={dayIndex}
                         editable={editable}
@@ -595,7 +603,7 @@ export default function ItineraryView({
                   if (isEmptyDayPlaceholder(entry)) {
                     return (
                       <ItineraryEmptyDaySection
-                        key={entry.clientDayId}
+                        key={`empty-day-${entry.dayNumber}-${dayIndex}`}
                         entry={entry}
                         dayIndex={dayIndex}
                         editable={false}
@@ -610,7 +618,7 @@ export default function ItineraryView({
 
                   return (
                     <ItineraryDaySection
-                      key={entry.clientDayId}
+                      key={`${entry.label}-${dayIndex}`}
                       day={entry}
                       dayIndex={dayIndex}
                       editable={false}
@@ -655,7 +663,12 @@ export default function ItineraryView({
             >
               <span className="material-symbols-outlined">add</span>
               Add new day
+              Add new day
             </button>
+          )}
+
+          <div className="relative">
+            <div className="absolute -left-[34px] top-0 flex flex-col items-center" />
           )}
 
           <div className="relative">
@@ -663,6 +676,55 @@ export default function ItineraryView({
           </div>
         </div>
       </div>
+
+      <PackingListPanel />
+
+      <ConfirmOverlay
+        open={!!confirmItemDeleteTarget}
+        title="Delete item"
+        message={
+          confirmItemDeleteTarget
+            ? `Delete "${confirmItemDeleteTarget.title}" from this trip? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        onCancel={() => setConfirmItemDeleteTarget(null)}
+        onConfirm={handleConfirmDeleteItem}
+      />
+
+      <ConfirmOverlay
+        open={!!confirmDayDeleteTarget}
+        title="Delete this day?"
+        message={
+          confirmDayDeleteTarget
+            ? `Delete "${confirmDayDeleteTarget.dayLabel}" and all its activities? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onCancel={() => setConfirmDayDeleteTarget(null)}
+        onConfirm={handleConfirmDeleteDay}
+      />
+
+      <EditItineraryItemModal
+        open={!!editingItemTarget}
+        form={editingItemForm}
+        onFormChange={(nextForm) => setEditingItemForm(nextForm)}
+        onClose={closeEditItemModal}
+        onSave={handleSaveEditedItem}
+      />
+
+      <EditItineraryItemModal
+        open={addActivityTargetDayIndex !== null}
+        form={addActivityForm}
+        onFormChange={(nextForm) => setAddActivityForm(nextForm)}
+        onClose={closeAddActivityModal}
+        onSave={handleSaveAddedActivity}
+        title="Add activity"
+        description="Add a new activity to this itinerary day."
+        saveLabel="Add activity"
+      />
 
       <PackingListPanel />
 

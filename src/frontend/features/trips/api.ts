@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from '../../lib/apiClient';
-import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto, ActivityDto } from '../../lib/types';
-import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, mockActivities, getMockItinerary } from './mock';
+import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from '../../lib/types';
+import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, getMockItinerary } from './mock';
 import type { ItineraryDay, ItineraryItem } from './itineraryTypes';
 
 export type CreateTripInput = {
@@ -120,6 +120,34 @@ export async function getTransportSegments(tripId: string): Promise<TransportSeg
     return mockTransportSegments.filter(t => t.tripId === tripId);
   }
   return apiGet<TransportSegmentDto[]>(`/api/trips/${tripId}/transport-segments`);
+}
+
+/**
+ * Get activities for a trip.
+ * @param tripId - The trip ID.
+ * @returns Promise<ActivityDto[]>
+ */
+export async function getActivities(tripId: string): Promise<ActivityDto[]> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+    return mockActivities.filter(a => a.tripId === tripId);
+  }
+  return apiGet<ActivityDto[]>(`/api/trips/${tripId}/activities`);
+}
+
+export async function generateTrip(request: GenerateTripRequest, init: RequestInit = {}): Promise<TripDto> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+    return {
+      id: crypto.randomUUID(),
+      titleOrDestination: request.titleOrDestination,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      travelers: request.travelers,
+      budget: request.budget,
+      status: "DRAFT",
+      notes: `Mock generated plan for ${request.titleOrDestination}.`,
+    };
+  }
+  return apiPost<TripDto>('/api/trips/generate', request, init);
 }
 
 /**
@@ -285,6 +313,7 @@ async function buildItineraryFromRelatedEndpoints(tripId: string): Promise<Itine
     getAccommodations(tripId),
     getDiningReservations(tripId),
   ]);
+  const activities: never[] = [];
 
   const entries: Array<{ key: string; date?: Date; item: ItineraryItem }> = [];
 
