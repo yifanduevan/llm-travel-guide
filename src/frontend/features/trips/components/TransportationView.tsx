@@ -3,6 +3,9 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { TransportSegment } from "./TripWorkspace";
 import AddSegmentModal from "./transportation/AddSegmentModal";
+import EditSegmentModal, {
+  type TransportSegmentEditForm,
+} from "./transportation/EditSegmentModal";
 import { getTransportIconName, normalizeTransportMode } from "../iconMap";
 import { getTransportSegments } from "@/features/trips/api";
 import { apiPost } from "@/lib/apiClient";
@@ -13,6 +16,7 @@ import ConfirmOverlay from "./ConfirmOverlay";
 type Props = {
   tripId?: string;
   segments?: TransportSegment[];
+  editable?: boolean;
 };
 
 type CreateTransportSegmentRequest = {
@@ -96,7 +100,11 @@ function mapTransportSegmentDto(dto: TransportSegmentDto): TransportSegment {
   };
 }
 
-export default function TransportationView({ tripId, segments }: Props) {
+export default function TransportationView({
+  tripId,
+  segments,
+  editable = false,
+}: Props) {
   const initial = useMemo(
     () => (segments && segments.length > 0 ? segments : fallbackSegments),
     [segments],
@@ -104,12 +112,13 @@ export default function TransportationView({ tripId, segments }: Props) {
 
   const [segmentState, setSegmentState] = useState<TransportSegment[]>(initial);
   const [userAddedSegments, setUserAddedSegments] = useState<TransportSegment[]>([]);
-  const [completedById, setCompletedById] = useState<Record<string, boolean>>({});
 
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<TransportSegment | null>(null);
+  const [editTarget, setEditTarget] = useState<TransportSegment | null>(null);
+  const [editForm, setEditForm] = useState<TransportSegmentEditForm | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -140,66 +149,113 @@ export default function TransportationView({ tripId, segments }: Props) {
   }, [tripId, segments]);
 
   const combinedSegments = useMemo(() => {
-    const merged = [...segmentState, ...userAddedSegments];
-    return merged.map((segment) => ({
-      ...segment,
-      completed: completedById[segment.id] ?? segment.completed,
-    }));
-  }, [segmentState, userAddedSegments, completedById]);
+    return [...segmentState, ...userAddedSegments];
+  }, [segmentState, userAddedSegments]);
 
-  const segmentsById = useMemo(
-    () => new Map(combinedSegments.map((segment) => [segment.id, segment])),
-    [combinedSegments],
-  );
-
-  const toggleComplete = (id: string) => {
-    const current = segmentsById.get(id)?.completed ?? false;
-    setCompletedById((prev) => ({ ...prev, [id]: !current }));
-  };
-
-  const { totalLabel, completedCount, totalCount, progressPct } = useMemo(() => {
-    const totalCount = combinedSegments.length;
-    const completedCount = combinedSegments.filter((seg) => seg.completed).length;
+  const totalLabel = useMemo(() => {
     const totalMinutes = combinedSegments.reduce(
       (sum, seg) => sum + computeSegmentMinutes(seg),
       0,
     );
-    const totalLabel = formatMinutes(totalMinutes);
-    const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-    return { totalLabel, completedCount, totalCount, progressPct };
+    return formatMinutes(totalMinutes);
   }, [combinedSegments]);
 
   const noData = combinedSegments.length === 0;
 
-  const handleDelete = async (segmentId: string) => {
-    if (!segmentId) return;
+  const updateSegmentLocally = (segmentId: string, nextSegment: TransportSegment) => {
+    setSegmentState((prev) =>
+      prev.map((segment) => (segment.id === segmentId ? nextSegment : segment)),
+    );
+    setUserAddedSegments((prev) =>
+      prev.map((segment) => (segment.id === segmentId ? nextSegment : segment)),
+    );
+  };
 
-    if (!tripId) {
-      setUserAddedSegments((prev) => prev.filter((segment) => segment.id !== segmentId));
-      setSegmentState((prev) => prev.filter((segment) => segment.id !== segmentId));
-      setConfirmTarget(null);
+  const openEditModal = (segment: TransportSegment) => {
+    setEditTarget(segment);
+    setEditError(null);
+    setEditForm({
+      title: segment.title,
+      type: normalizeTransportTypeValue(segment.type ?? segment.mode),
+      startTime: toDateTimeLocalInput(segment.startTime),
+      startLocation: segment.startLocation ?? "",
+      endTime: toDateTimeLocalInput(segment.endTime),
+      endLocation: segment.endLocation ?? "",
+      status: segment.status?.toUpperCase() || "PLANNED",
+      confirmationCode: segment.confirmationCode ?? "",
+      ticketUrl: segment.ticketsUrl ?? segment.ticketUrl ?? "",
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditTarget(null);
+    setEditForm(null);
+    setEditError(null);
+  };
+
+  const handleSaveEditedSegment = () => {
+    if (!editTarget || !editForm) return;
+
+    const nextTitle = editForm.title.trim();
+    if (!nextTitle) {
+      setEditError("Segment title is required.");
       return;
     }
 
-    setDeletingId(segmentId);
-    setListError(null);
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
-      const res = await fetch(`${baseUrl}/api/trips/${tripId}/transport-segments/${segmentId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const message = await res.text();
-        throw new Error(message || "Failed to delete segment");
+    const nextStartTime = editForm.startTime
+      ? new Date(editForm.startTime).toISOString()
+      : null;
+    const nextEndTime = editForm.endTime
+      ? new Date(editForm.endTime).toISOString()
+      : null;
+
+    if (nextStartTime && nextEndTime) {
+      const startMs = new Date(nextStartTime).getTime();
+      const endMs = new Date(nextEndTime).getTime();
+      if (!Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs < startMs) {
+        setEditError("Arrival time must be after departure time.");
+        return;
       }
-      setSegmentState((prev) => prev.filter((segment) => segment.id !== segmentId));
-      setUserAddedSegments((prev) => prev.filter((segment) => segment.id !== segmentId));
-    } catch (err) {
-      setListError(err instanceof Error ? err.message : "Unable to delete segment");
-    } finally {
-      setDeletingId(null);
-      setConfirmTarget(null);
     }
+
+    const normalizedType = normalizeTransportTypeValue(editForm.type);
+    const normalizedMode = normalizeTransportMode(normalizedType);
+    const nextTicketUrl = editForm.ticketUrl.trim() || null;
+    const nextDurationText = computeDurationText(nextStartTime, nextEndTime);
+
+    const nextSegment: TransportSegment = {
+      ...editTarget,
+      mode: normalizedMode,
+      type: normalizedType,
+      title: nextTitle,
+      startTime: nextStartTime,
+      startLocation: editForm.startLocation.trim() || null,
+      endTime: nextEndTime,
+      endLocation: editForm.endLocation.trim() || null,
+      status: editForm.status.trim().toUpperCase() || "PLANNED",
+      durationText: nextDurationText,
+      confirmationCode: editForm.confirmationCode.trim() || null,
+      ticketUrl: nextTicketUrl,
+      ticketsUrl: nextTicketUrl,
+      notes: null,
+      completed: false,
+    };
+
+    updateSegmentLocally(editTarget.id, nextSegment);
+    closeEditModal();
+  };
+
+  const handleDelete = (segmentId: string) => {
+    if (!segmentId) return;
+
+    setSegmentState((prev) => prev.filter((segment) => segment.id !== segmentId));
+    setUserAddedSegments((prev) => prev.filter((segment) => segment.id !== segmentId));
+
+    if (editTarget?.id === segmentId) {
+      closeEditModal();
+    }
+
+    setConfirmTarget(null);
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -305,9 +361,7 @@ export default function TransportationView({ tripId, segments }: Props) {
               return (
                 <div
                   key={segment.id}
-                  className={`group flex flex-col overflow-hidden rounded-2xl border-white bg-white shadow-sm transition hover:shadow-lg md:flex-row ${
-                    segment.completed ? "opacity-70 grayscale" : ""
-                  }`}
+                  className="group flex flex-col overflow-hidden rounded-2xl border-white bg-white shadow-sm transition hover:shadow-lg md:flex-row"
                 >
                   <div className="flex flex-1 flex-col items-center gap-6 p-6 md:flex-row">
                     <div className="flex-1">
@@ -375,31 +429,32 @@ export default function TransportationView({ tripId, segments }: Props) {
                         </a>
                       )}
 
-                      <div className="flex items-center gap-3 text-xs font-medium text-slate-600">
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={segment.completed}
-                            onChange={() => toggleComplete(segment.id)}
-                            className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                          />
-                          Marked done
-                        </label>
-
-                        <button
-                          type="button"
-                          onClick={() => setConfirmTarget(segment)}
-                          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100"
-                          title="Delete segment"
-                          disabled={deletingId === segment.id}
-                        >
-                          {deletingId === segment.id ? (
-                            <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
-                          ) : (
-                            <span className="material-symbols-outlined text-sm">delete</span>
-                          )}
-                        </button>
-                      </div>
+                      {editable && (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(segment)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                            title="Edit segment"
+                            aria-label="Edit segment"
+                          >
+                            <span className="material-symbols-outlined text-base leading-none">
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmTarget(segment)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
+                            title="Delete segment"
+                            aria-label="Delete segment"
+                          >
+                            <span className="material-symbols-outlined text-base leading-none">
+                              delete
+                            </span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -420,18 +475,6 @@ export default function TransportationView({ tripId, segments }: Props) {
                   <span className="text-sm font-medium text-slate-800">Total travel time</span>
                 </div>
                 <p className="ml-9 text-xl font-semibold text-slate-900">{totalLabel}</p>
-              </div>
-
-              <div className="border-t border-slate-200 pt-2">
-                <div className="flex items-center justify-between text-xs font-medium text-slate-600">
-                  <span>Segments completed</span>
-                  <span>
-                    {completedCount} / {totalCount}
-                  </span>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                  <div className="h-full bg-slate-900" style={{ width: `${progressPct}%` }} />
-                </div>
               </div>
             </div>
           </div>
@@ -626,9 +669,20 @@ export default function TransportationView({ tripId, segments }: Props) {
         </form>
       </OverlayModal>
 
+      {editTarget && editForm && (
+        <EditSegmentModal
+          open={true}
+          form={editForm}
+          error={editError}
+          onFormChange={(nextForm) => setEditForm(nextForm)}
+          onClose={closeEditModal}
+          onSave={handleSaveEditedSegment}
+        />
+      )}
+
       <ConfirmOverlay
         open={!!confirmTarget}
-        title="Delete segment"
+        title="Delete segment?"
         message={
           confirmTarget
             ? `Delete "${confirmTarget.title}" from this trip? This cannot be undone.`
@@ -636,12 +690,45 @@ export default function TransportationView({ tripId, segments }: Props) {
         }
         confirmLabel="Delete"
         cancelLabel="Keep"
-        busy={deletingId !== null}
         onCancel={() => setConfirmTarget(null)}
         onConfirm={() => confirmTarget && handleDelete(confirmTarget.id)}
       />
     </div>
   );
+}
+
+function normalizeTransportTypeValue(input: string | null | undefined): string {
+  const raw = (input ?? "").toString().trim().toUpperCase();
+  if (!raw) return "OTHER";
+  if (raw === "OTHERS") return "OTHER";
+  return raw;
+}
+
+function toDateTimeLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const pad = (value: number) => value.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate(),
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function computeDurationText(
+  startIso: string | null | undefined,
+  endIso: string | null | undefined,
+): string | null {
+  if (!startIso || !endIso) return null;
+
+  const start = new Date(startIso).getTime();
+  const end = new Date(endIso).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end < start) {
+    return null;
+  }
+
+  return formatSegmentDuration(Math.round((end - start) / 60000));
 }
 
 function formatTimeInZone(iso: string | null | undefined, tz?: string | null) {
@@ -688,12 +775,27 @@ function computeSegmentMinutes(segment: TransportSegment) {
     return Math.round(parseFloat(hoursMatch[1]) * 60);
   }
 
-  const minutesMatch = text.match(/(\d+)\s*m(?:in(?:utes?)?)?/);
+  const minutesMatch = text.match(/(\d+)\s*m(?:in(?:s|utes?)?)?/);
   if (minutesMatch) {
     return parseInt(minutesMatch[1], 10);
   }
 
   return 0;
+}
+
+function formatSegmentDuration(minutes: number) {
+  if (minutes < 60) {
+    return `${minutes} mins`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+
+  if (mins === 0) {
+    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+  }
+
+  return `${hours}h ${mins}m`;
 }
 
 function formatMinutes(minutes: number) {

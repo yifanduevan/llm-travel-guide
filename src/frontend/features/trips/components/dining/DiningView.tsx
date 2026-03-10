@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { DiningReservation } from "../TripWorkspace";
 import type { Reservation } from "@/features/trips/mock";
 import { useRestaurants } from "@/features/trips/hooks/useRestaurants";
@@ -10,44 +10,77 @@ import { RestaurantDetailModal } from "./RestaurantDetailModal";
 import { ReservationModal } from "./ReservationModal";
 import { ReservationViewModal } from "./ReservationViewModal";
 import { AddRestaurantModal } from "./AddRestaurantModal";
-import { getRestaurantKey } from "@/features/trips/utils/dining";
+import { getRestaurantKey, toDateTimeLocal } from "@/features/trips/utils/dining";
+import ConfirmOverlay from "../ConfirmOverlay";
+import {
+  DiningReservationEditModal,
+  type DiningReservationEditForm,
+} from "./DiningReservationEditModal";
 
 type ModalState =
   | { type: "none" }
   | { type: "addRestaurant" }
   | { type: "restaurantDetail"; restaurantId: string }
-  | { type: "reservation"; mode: "add" | "edit"; restaurantId: string }
+  | { type: "addReservation"; restaurantId: string }
   | { type: "viewReservation"; restaurantId: string };
 
 type DiningViewProps = {
   tripId: string;
   tripStartDate?: string | null;
+  editable?: boolean;
 };
 
-export function DiningView({ tripId, tripStartDate }: DiningViewProps) {
+export function DiningView({
+  tripId,
+  tripStartDate,
+  editable = false,
+}: DiningViewProps) {
   const {
     restaurants: apiRestaurants,
     loading,
     error: restaurantError,
   } = useRestaurants(tripId);
-  const { getReservation, upsertReservation } =
+  const { getReservation, upsertReservation, removeReservation } =
     useReservations(tripId, apiRestaurants);
 
   const [userAddedRestaurants, setUserAddedRestaurants] = useState<
     DiningReservation[]
   >([]);
+  const [editedRestaurantsById, setEditedRestaurantsById] = useState<
+    Record<string, DiningReservation>
+  >({});
+  const [removedRestaurantIds, setRemovedRestaurantIds] = useState<
+    Record<string, true>
+  >({});
   const [modalState, setModalState] = useState<ModalState>({ type: "none" });
   const [apiError, setApiError] = useState<string | null>(null);
+  const [editingRestaurantId, setEditingRestaurantId] = useState<string | null>(
+    null,
+  );
+  const [editForm, setEditForm] = useState<DiningReservationEditForm | null>(
+    null,
+  );
+  const [editFormError, setEditFormError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    restaurantId: string;
+    restaurantName: string;
+  } | null>(null);
 
   // Merge API restaurants with user-added ones
-  const allRestaurants = [...apiRestaurants, ...userAddedRestaurants];
+  const allRestaurants = useMemo(() => {
+    const merged = [...apiRestaurants, ...userAddedRestaurants];
+
+    return merged
+      .filter((restaurant) => !removedRestaurantIds[restaurant.id])
+      .map((restaurant) => editedRestaurantsById[restaurant.id] ?? restaurant);
+  }, [apiRestaurants, userAddedRestaurants, removedRestaurantIds, editedRestaurantsById]);
 
   const openDetailModal = (restaurantId: string) => {
     setModalState({ type: "restaurantDetail", restaurantId });
   };
 
-  const openReservationModal = (restaurantId: string, mode: "add" | "edit") => {
-    setModalState({ type: "reservation", mode, restaurantId });
+  const openAddReservationModal = (restaurantId: string) => {
+    setModalState({ type: "addReservation", restaurantId });
   };
 
   const openViewReservationModal = (restaurantId: string) => {
@@ -65,7 +98,7 @@ export function DiningView({ tripId, tripStartDate }: DiningViewProps) {
   const handleSaveReservation = async (reservation: Reservation) => {
     try {
       setApiError(null);
-      if (modalState.type !== "reservation") {
+      if (modalState.type !== "addReservation") {
         throw new Error("Invalid modal state for saving a reservation.");
       }
 
@@ -106,15 +139,142 @@ export function DiningView({ tripId, tripStartDate }: DiningViewProps) {
   };
 
   const handleCardAddReservation = (restaurant: DiningReservation) => {
-    openReservationModal(restaurant.id, "add");
-  };
-
-  const handleCardEditReservation = (restaurant: DiningReservation) => {
-    openReservationModal(restaurant.id, "edit");
+    openAddReservationModal(restaurant.id);
   };
 
   const handleCardViewReservation = (restaurant: DiningReservation) => {
     openViewReservationModal(restaurant.id);
+  };
+
+  const closeEditDiningCardModal = () => {
+    setEditingRestaurantId(null);
+    setEditForm(null);
+    setEditFormError(null);
+  };
+
+  const openEditDiningCardModal = (
+    restaurant: DiningReservation,
+    reservation: Reservation | null,
+  ) => {
+    setEditingRestaurantId(restaurant.id);
+    setEditFormError(null);
+    setEditForm({
+      name: restaurant.name,
+      address: restaurant.address ?? "",
+      cuisine: restaurant.cuisine ?? "",
+      priceLevel: restaurant.priceLevel ?? "MEDIUM",
+      notes: restaurant.notes ?? "",
+      reservationName: reservation?.name ?? restaurant.name,
+      reservationPartySize:
+        reservation?.partySize ?? restaurant.partySize ?? 2,
+      reservationTime:
+        reservation?.datetimeLocal ?? toDateTimeLocal(restaurant.time ?? ""),
+      reservationCode:
+        reservation?.confirmationCode ?? restaurant.confirmationCode ?? "",
+      reservationNotes: reservation?.notes ?? restaurant.notes ?? "",
+    });
+  };
+
+  const handleSaveEditedDiningCard = () => {
+    if (!editingRestaurantId || !editForm) return;
+
+    const trimmedRestaurantName = editForm.name.trim();
+    if (!trimmedRestaurantName) {
+      setEditFormError("Restaurant name is required.");
+      return;
+    }
+
+    if (
+      !Number.isFinite(editForm.reservationPartySize) ||
+      editForm.reservationPartySize < 1
+    ) {
+      setEditFormError("Guest count must be at least 1.");
+      return;
+    }
+
+    const restaurant = allRestaurants.find((item) => item.id === editingRestaurantId);
+    if (!restaurant) {
+      setEditFormError("Unable to find that reservation card.");
+      return;
+    }
+
+    const sanitizedPartySize = Math.max(1, Math.round(editForm.reservationPartySize));
+    const nextRestaurant: DiningReservation = {
+      ...restaurant,
+      name: trimmedRestaurantName,
+      address: editForm.address.trim() || null,
+      cuisine: editForm.cuisine.trim() || null,
+      priceLevel: editForm.priceLevel,
+      notes: editForm.notes.trim() || null,
+      time: editForm.reservationTime || null,
+      confirmationCode: editForm.reservationCode.trim() || null,
+      partySize: sanitizedPartySize,
+    };
+
+    setEditedRestaurantsById((prev) => ({
+      ...prev,
+      [nextRestaurant.id]: nextRestaurant,
+    }));
+
+    const restaurantKey = getRestaurantKey(nextRestaurant);
+    upsertReservation(restaurantKey, {
+      restaurantId: restaurantKey,
+      name: editForm.reservationName.trim() || trimmedRestaurantName,
+      partySize: sanitizedPartySize,
+      datetimeLocal: editForm.reservationTime,
+      confirmationCode: editForm.reservationCode.trim(),
+      notes: editForm.reservationNotes.trim(),
+    });
+
+    closeEditDiningCardModal();
+  };
+
+  const handleConfirmDeleteReservation = () => {
+    if (!deleteTarget) return;
+
+    const restaurant = allRestaurants.find(
+      (item) => item.id === deleteTarget.restaurantId,
+    );
+    if (!restaurant) {
+      setDeleteTarget(null);
+      return;
+    }
+
+    const restaurantKey = getRestaurantKey(restaurant);
+    removeReservation(restaurantKey);
+
+    setUserAddedRestaurants((prev) =>
+      prev.filter((item) => item.id !== restaurant.id),
+    );
+
+    setEditedRestaurantsById((prev) => {
+      if (!(restaurant.id in prev)) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      delete next[restaurant.id];
+      return next;
+    });
+
+    setRemovedRestaurantIds((prev) => ({
+      ...prev,
+      [restaurant.id]: true,
+    }));
+
+    if (editingRestaurantId === restaurant.id) {
+      closeEditDiningCardModal();
+    }
+
+    setModalState((prev) => {
+      if ("restaurantId" in prev && prev.restaurantId === restaurant.id) {
+        return { type: "none" };
+      }
+
+      return prev;
+    });
+
+    setDeleteTarget(null);
   };
 
   // Render error state
@@ -210,10 +370,17 @@ export function DiningView({ tripId, tripStartDate }: DiningViewProps) {
                 key={`${restaurant.id}-${restaurant.name}`}
                 restaurant={restaurant}
                 reservation={reservation}
+                editable={editable}
                 onOpenDetail={() => openDetailModal(restaurant.id)}
                 onViewReservation={handleCardViewReservation}
-                onEditReservation={handleCardEditReservation}
                 onAddReservation={handleCardAddReservation}
+                onEditCard={openEditDiningCardModal}
+                onDeleteReservation={(targetRestaurant) =>
+                  setDeleteTarget({
+                    restaurantId: targetRestaurant.id,
+                    restaurantName: targetRestaurant.name,
+                  })
+                }
               />
             );
           })}
@@ -229,10 +396,9 @@ export function DiningView({ tripId, tripStartDate }: DiningViewProps) {
         />
       )}
 
-      {/* Reservation Modal (Add/Edit) */}
-      {modalState.type === "reservation" && currentRestaurant && (
+      {/* Reservation Modal (Add) */}
+      {modalState.type === "addReservation" && currentRestaurant && (
         <ReservationModal
-          mode={modalState.mode}
           restaurant={currentRestaurant}
           initialReservation={currentReservation ?? null}
           tripStartDate={tripStartDate}
@@ -249,9 +415,35 @@ export function DiningView({ tripId, tripStartDate }: DiningViewProps) {
             restaurant={currentRestaurant}
             reservation={currentReservation}
             onClose={closeModal}
-            onEdit={() => handleCardEditReservation(currentRestaurant)}
           />
         )}
+
+      {/* Quick Edit Dining Card Modal */}
+      {editingRestaurantId && editForm && (
+        <DiningReservationEditModal
+          open={true}
+          form={editForm}
+          formError={editFormError}
+          tripStartDate={tripStartDate}
+          onFormChange={(nextForm) => setEditForm(nextForm)}
+          onClose={closeEditDiningCardModal}
+          onSave={handleSaveEditedDiningCard}
+        />
+      )}
+
+      <ConfirmOverlay
+        open={!!deleteTarget}
+        title="Delete reservation?"
+        message={
+          deleteTarget
+            ? `Delete the reservation for "${deleteTarget.restaurantName}" from this trip? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDeleteReservation}
+      />
 
       {/* Add Restaurant Modal */}
       {modalState.type === "addRestaurant" && (

@@ -16,7 +16,6 @@ const emptyReservation: Reservation = {
 };
 
 type ReservationModalProps = {
-  mode: "add" | "edit";
   restaurant: DiningReservation;
   initialReservation: Reservation | null;
   tripStartDate?: string | null;
@@ -25,7 +24,6 @@ type ReservationModalProps = {
 };
 
 export function ReservationModal({
-  mode,
   restaurant,
   initialReservation,
   tripStartDate,
@@ -52,8 +50,6 @@ export function ReservationModal({
     onClose();
   };
 
-  const modalTitle = mode === "add" ? "Add reservation" : "Edit reservation";
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
@@ -73,7 +69,7 @@ export function ReservationModal({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                {modalTitle}
+                Add reservation
               </p>
               <h4 className="mt-1 text-lg font-semibold text-slate-900">
                 {restaurant.name}

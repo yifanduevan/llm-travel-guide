@@ -3,14 +3,9 @@ import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto, A
 import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, mockActivities, getMockItinerary } from './mock';
 import type { ItineraryDay, ItineraryItem } from './itineraryTypes';
 
-export type GenerateTripRequest = {
-  titleOrDestination: string;
-  startDate: string;
-  endDate: string;
-  travelers: "SOLO" | "COUPLE" | "FAMILY" | "GROUP";
-  budget: "BUDGET" | "MEDIUM" | "LUXURY";
-  interests: string[];
-};
+function wait(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 /**
  * Get all trips.
@@ -120,6 +115,100 @@ export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
   }
 
   return buildItineraryFromRelatedEndpoints(tripId);
+}
+
+/**
+ * Generate itinerary for a trip.
+ * @param tripId - The trip ID.
+ * @returns Promise<ItineraryDay[]>
+ */
+export async function generateItinerary(tripId: string): Promise<ItineraryDay[]> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+    await wait(1200);
+    return getMockItinerary(tripId);
+  }
+
+  try {
+    const trip = await getTrip(tripId);
+    const response = await fetch('/api/ai/itinerary', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        tripId,
+        trip: {
+          titleOrDestination: trip.titleOrDestination ?? '',
+          startDate: trip.startDate ?? '',
+          endDate: trip.endDate ?? '',
+          travelers: trip.travelers ?? 'COUPLE',
+          budget: trip.budget ?? 'MEDIUM',
+          notes: trip.notes ?? null,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Itinerary endpoint is not implemented on backend (404).');
+      }
+      let message = `Failed to generate itinerary (${response.status})`;
+      try {
+        const payload = await response.json() as { error?: string };
+        if (payload.error) {
+          message = payload.error;
+        }
+      } catch {
+      }
+      throw new Error(message);
+    }
+
+    const payload = await response.json() as { days?: unknown[] };
+    const mapped = mapLlmDaysToUi(payload.days);
+    if (mapped.length > 0) {
+      return mapped;
+    }
+    throw new Error('Invalid LLM response');
+  } catch (error) {
+    throw error;
+  }
+}
+
+function mapLlmDaysToUi(days: unknown): ItineraryDay[] {
+  if (!Array.isArray(days)) return [];
+
+  return days
+    .filter((day): day is Record<string, unknown> => !!day && typeof day === 'object')
+    .map((day, index) => {
+      const rawDate = String(day.date ?? '');
+      const parsedDate = new Date(`${rawDate}T00:00:00`);
+      const dateLabel = Number.isNaN(parsedDate.getTime())
+        ? rawDate || 'TBD'
+        : parsedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+
+      const rawItems = Array.isArray(day.items) ? day.items : [];
+      const items = rawItems
+        .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+        .map((item) => {
+          const description = String(item.description ?? '').trim();
+          const locationText = String(item.locationText ?? '').trim();
+          const note = [description, locationText].filter(Boolean).join(' • ');
+
+          return {
+            icon: 'local_activity',
+            title: String(item.title ?? 'Activity'),
+            time: String(item.time ?? 'TBD'),
+            note: note || 'Details to be confirmed.',
+          } satisfies ItineraryItem;
+        });
+
+      return {
+        label: `Day ${index + 1}`,
+        date: dateLabel,
+        active: index === 0,
+        items,
+      } satisfies ItineraryDay;
+    });
 }
 
 function mapItineraryPayload(payload: unknown): ItineraryDay[] {

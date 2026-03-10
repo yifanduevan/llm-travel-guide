@@ -25,7 +25,6 @@ type AddSegmentFormState = {
   confirmationCode: string;
   ticketsUrl: string;
   notes: string;
-  completed: boolean;
 };
 
 type FormErrors = Partial<
@@ -57,7 +56,6 @@ export default function AddSegmentModal({ onSave, onClose }: AddSegmentModalProp
     confirmationCode: "",
     ticketsUrl: "",
     notes: "",
-    completed: false,
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -136,7 +134,7 @@ export default function AddSegmentModal({ onSave, onClose }: AddSegmentModalProp
       ticketsUrl,
       ticketUrl: ticketsUrl,
       notes: formState.notes.trim() || null,
-      completed: formState.completed,
+      completed: false,
     };
 
     onSave(newSegment);
@@ -370,20 +368,6 @@ export default function AddSegmentModal({ onSave, onClose }: AddSegmentModalProp
               />
             </div>
 
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
-              <input
-                type="checkbox"
-                checked={formState.completed}
-                onChange={(event) =>
-                  setFormState((prev) => ({
-                    ...prev,
-                    completed: event.target.checked,
-                  }))
-                }
-                className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-              />
-              Marked done
-            </label>
           </div>
 
           <div className="mt-6 flex items-center justify-end gap-2">

@@ -8,14 +8,12 @@ type ReservationViewModalProps = {
   restaurant: DiningReservation;
   reservation: Reservation;
   onClose: () => void;
-  onEdit: () => void;
 };
 
 export function ReservationViewModal({
   restaurant,
   reservation,
   onClose,
-  onEdit,
 }: ReservationViewModalProps) {
   return (
     <div
@@ -109,13 +107,6 @@ export function ReservationViewModal({
                 className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Close
-              </button>
-              <button
-                type="button"
-                onClick={onEdit}
-                className="rounded-xl px-4 py-2 text-xs font-bold btn-primary"
-              >
-                Edit
               </button>
             </div>
           </div>

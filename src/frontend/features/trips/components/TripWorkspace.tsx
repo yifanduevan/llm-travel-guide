@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import TabNavigation from "./TabNavigation";
 import ItineraryView from "./ItineraryView";
 import DiningView from "./DiningView";
@@ -85,10 +84,7 @@ export default function TripWorkspace({
   editable = false,
 }: TripWorkspaceProps) {
   const [currentView, setCurrentView] = useState<ViewName>("itinerary");
-  const searchParams = useSearchParams();
-  const urlEdit = searchParams?.get("edit") === "true";
-
-  const isEditable = editable || urlEdit;
+  const isEditable = editable;
 
   const heading = trip?.titleOrDestination && trip.titleOrDestination.trim() !== "" ? trip.titleOrDestination : tripId;
   const dateRange =
@@ -107,10 +103,17 @@ export default function TripWorkspace({
           <DiningView
             tripId={tripId}
             tripStartDate={trip?.startDate ?? null}
+            editable={isEditable}
           />
         );
       case "transportation":
-        return <TransportationView tripId={tripId} segments={transportSegments} />;
+        return (
+          <TransportationView
+            tripId={tripId}
+            segments={transportSegments}
+            editable={isEditable}
+          />
+        );
       case "accommodation":
         return (
           <AccommodationsView
@@ -151,7 +154,7 @@ export default function TripWorkspace({
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-sm font-semibold uppercase text-black">
-          {editable ? "Edit trip" : "Trip view"}
+          {isEditable ? "Edit trip" : "Trip view"}
         </p>
         <h1 className="text-3xl font-semibold text-slate-900">
           {heading}
@@ -163,6 +166,11 @@ export default function TripWorkspace({
             activities.
           </p>
         </div>
+        {isEditable && (
+          <p className="inline-flex w-fit rounded-md border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
+            Editing mode
+          </p>
+        )}
       </div>
 
       <TabNavigation currentView={currentView} onViewChange={setCurrentView} />

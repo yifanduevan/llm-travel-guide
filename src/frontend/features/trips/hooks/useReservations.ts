@@ -14,6 +14,7 @@ type UseReservationsResult = {
   reservations: Record<string, Reservation | null>;
   getReservation: (restaurantKey: string) => Reservation | null;
   upsertReservation: (restaurantKey: string, reservation: Reservation) => void;
+  removeReservation: (restaurantKey: string) => void;
 };
 
 export function useReservations(
@@ -224,9 +225,21 @@ export function useReservations(
 
   };
 
+  const removeReservation = (restaurantKey: string) => {
+    setReservations((prev) => ({
+      ...prev,
+      [restaurantKey]: null,
+    }));
+
+    if (isMock) {
+      delete mockReservations[restaurantKey];
+    }
+  };
+
   return {
     reservations,
     getReservation,
     upsertReservation,
+    removeReservation,
   };
 }

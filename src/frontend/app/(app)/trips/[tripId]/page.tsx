@@ -1,5 +1,4 @@
-import Link from "next/link";
-import TripWorkspace from "@/features/trips/components/TripWorkspace";
+import TripDetailClient from "./TripDetailClient";
 import {
   Accommodation,
   DiningReservation,
@@ -130,30 +129,12 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
     ]);
 
   return (
-    <div className="space-y-6">
-      <TripWorkspace
-        tripId={tripId}
-        trip={trip ?? undefined}
-        transportSegments={transportSegments}
-        diningReservations={diningReservations}
-        accommodations={accommodations}
-      />
-
-      <div className="flex gap-3">
-        <Link
-          href={`?edit=true`}
-          className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary"
-        >
-          Edit trip
-        </Link>
-        <Link
-          href="/trips"
-          className="rounded-lg border border-slate-400 px-4 py-2 transition hover:border-slate-900 hover:bg-slate-50"
-          style={{ color: '#5e5e5e' }}
-        >
-          Back to trips
-        </Link>
-      </div>
-    </div>
+    <TripDetailClient
+      tripId={tripId}
+      trip={trip ?? undefined}
+      transportSegments={transportSegments}
+      diningReservations={diningReservations}
+      accommodations={accommodations}
+    />
   );
 }

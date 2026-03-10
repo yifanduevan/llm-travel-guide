@@ -7,19 +7,23 @@ import { normalizeStatus, formatDateTime, formatPartySize } from "@/features/tri
 type RestaurantCardProps = {
   restaurant: DiningReservation;
   reservation: Reservation | null;
+  editable: boolean;
   onOpenDetail: (restaurantId: string) => void;
   onViewReservation: (restaurant: DiningReservation, reservation: Reservation) => void;
-  onEditReservation: (restaurant: DiningReservation, reservation: Reservation) => void;
   onAddReservation: (restaurant: DiningReservation) => void;
+  onEditCard: (restaurant: DiningReservation, reservation: Reservation | null) => void;
+  onDeleteReservation: (restaurant: DiningReservation) => void;
 };
 
 export function RestaurantCard({
   restaurant,
   reservation,
+  editable,
   onOpenDetail,
   onViewReservation,
-  onEditReservation,
   onAddReservation,
+  onEditCard,
+  onDeleteReservation,
 }: RestaurantCardProps) {
   const statusLabel = normalizeStatus(restaurant.status).toUpperCase();
   const notesValue = reservation?.notes ?? restaurant.notes ?? "No notes";
@@ -100,9 +104,44 @@ export function RestaurantCard({
           Confirmation: {confirmationValue}
         </div>
 
-        <div className="flex items-center justify-end gap-2">
-          {reservation ? (
-            <>
+        <div className="flex items-center justify-between gap-3">
+          {editable ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditCard(restaurant, reservation);
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                title="Edit reservation"
+                aria-label="Edit reservation"
+              >
+                <span className="material-symbols-outlined text-base leading-none">
+                  edit
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteReservation(restaurant);
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-red-600 transition hover:bg-red-50 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
+                title="Delete reservation"
+                aria-label="Delete reservation"
+              >
+                <span className="material-symbols-outlined text-base leading-none">
+                  delete
+                </span>
+              </button>
+            </div>
+          ) : (
+            <div />
+          )}
+
+          <div className="flex items-center justify-end gap-2">
+            {reservation ? (
               <button
                 type="button"
                 onClick={(e) => {
@@ -113,29 +152,19 @@ export function RestaurantCard({
               >
                 View reservation
               </button>
+            ) : (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onEditReservation(restaurant, reservation);
+                  onAddReservation(restaurant);
                 }}
                 className="rounded-xl px-4 py-2 text-xs font-bold btn-primary"
               >
-                Edit reservation
+                Add reservation
               </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddReservation(restaurant);
-              }}
-              className="rounded-xl px-4 py-2 text-xs font-bold btn-primary"
-            >
-              Add reservation
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,15 +1,17 @@
 "use client";
-
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DateRangePicker from "@/features/trips/components/DateRangePicker";
-import { generateTrip } from "@/features/trips/api";
+
+type BudgetTier = "Budget" | "Medium" | "Luxury";
+type BudgetInputMode = "slider" | "custom";
 
 type UserPreferences = {
   destination: string;
   startDate: string | null;
   endDate: string | null;
-  budget: "Budget" | "Medium" | "Luxury";
+  budget: BudgetTier;
+  dailyBudget: number;
   interests: string[];
   travelers: "Solo" | "Couple" | "Family" | "Group";
 };
@@ -24,18 +26,33 @@ const interestOptions = [
   "Nightlife",
 ];
 
-const travelerMap: Record<UserPreferences["travelers"], "SOLO" | "COUPLE" | "FAMILY" | "GROUP"> = {
-  Solo: "SOLO",
-  Couple: "COUPLE",
-  Family: "FAMILY",
-  Group: "GROUP",
-};
+const BUDGET_MARKS = {
+  min: 80,
+  mid: 150,
+  max: 300,
+} as const;
 
-const budgetMap: Record<UserPreferences["budget"], "BUDGET" | "MEDIUM" | "LUXURY"> = {
-  Budget: "BUDGET",
-  Medium: "MEDIUM",
-  Luxury: "LUXURY",
-};
+const DEFAULT_BUDGET_SLIDER_VALUE = 50;
+
+function getBudgetLevelFromSlider(sliderValue: number): BudgetTier {
+  if (sliderValue < 34) return "Budget";
+  if (sliderValue < 67) return "Medium";
+  return "Luxury";
+}
+
+function getDailyBudgetFromSlider(sliderValue: number): number {
+  if (sliderValue <= 50) {
+    const lowerRangeProgress = sliderValue / 50;
+    return Math.round(
+      BUDGET_MARKS.min + (BUDGET_MARKS.mid - BUDGET_MARKS.min) * lowerRangeProgress,
+    );
+  }
+
+  const upperRangeProgress = (sliderValue - 50) / 50;
+  return Math.round(
+    BUDGET_MARKS.mid + (BUDGET_MARKS.max - BUDGET_MARKS.mid) * upperRangeProgress,
+  );
+}
 
 export default function AddTripPage() {
   const router = useRouter();
@@ -43,10 +60,14 @@ export default function AddTripPage() {
     destination: "",
     startDate: null,
     endDate: null,
-    budget: "Medium",
+    budget: getBudgetLevelFromSlider(DEFAULT_BUDGET_SLIDER_VALUE),
+    dailyBudget: getDailyBudgetFromSlider(DEFAULT_BUDGET_SLIDER_VALUE),
     interests: [],
     travelers: "Couple",
   });
+  const [budgetInputMode, setBudgetInputMode] = useState<BudgetInputMode>("slider");
+  const [budgetSliderValue, setBudgetSliderValue] = useState(DEFAULT_BUDGET_SLIDER_VALUE);
+  const [dailyBudgetInput, setDailyBudgetInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -75,14 +96,36 @@ export default function AddTripPage() {
   }, [router]);
 
   const selectedCount = useMemo(() => prefs.interests.length, [prefs.interests]);
+  const sliderDailyBudget = useMemo(
+    () => getDailyBudgetFromSlider(budgetSliderValue),
+    [budgetSliderValue],
+  );
+  const sliderBudgetLevel = useMemo(
+    () => getBudgetLevelFromSlider(budgetSliderValue),
+    [budgetSliderValue],
+  );
+
+  const parsedCustomDailyBudget = Number(dailyBudgetInput);
+  const hasValidCustomDailyBudget =
+    dailyBudgetInput.trim() !== "" &&
+    Number.isFinite(parsedCustomDailyBudget) &&
+    parsedCustomDailyBudget > 0;
+  const isSliderMode = budgetInputMode === "slider";
+  const isCustomMode = budgetInputMode === "custom";
+  const isBudgetInputValid = isSliderMode || hasValidCustomDailyBudget;
+  const effectiveDailyBudget =
+    isCustomMode && hasValidCustomDailyBudget
+      ? parsedCustomDailyBudget
+      : sliderDailyBudget;
+  const showCustomBudgetValidation = isCustomMode && !hasValidCustomDailyBudget;
 
   const isFormValid = useMemo(() => {
     const hasDestination = !!prefs.destination.trim();
     const hasStartDate = !!prefs.startDate;
     const hasEndDate = !!prefs.endDate;
     const datesValid = hasStartDate && hasEndDate && prefs.endDate! >= prefs.startDate!;
-    return hasDestination && hasStartDate && hasEndDate && datesValid;
-  }, [prefs]);
+    return hasDestination && hasStartDate && hasEndDate && datesValid && isBudgetInputValid;
+  }, [prefs.destination, prefs.startDate, prefs.endDate, isBudgetInputValid]);
 
   const toggleInterest = (interest: string) => {
     setPrefs((prev) => ({
@@ -90,6 +133,62 @@ export default function AddTripPage() {
       interests: prev.interests.includes(interest)
         ? prev.interests.filter((i) => i !== interest)
         : [...prev.interests, interest],
+    }));
+  };
+
+  const handleBudgetSliderChange = (sliderValue: number) => {
+    setBudgetSliderValue(sliderValue);
+    const sliderBasedBudget = getDailyBudgetFromSlider(sliderValue);
+
+    setPrefs((prev) => ({
+      ...prev,
+      budget: getBudgetLevelFromSlider(sliderValue),
+      dailyBudget: isSliderMode ? sliderBasedBudget : prev.dailyBudget,
+    }));
+  };
+
+  const handleBudgetInputModeChange = (mode: BudgetInputMode) => {
+    setBudgetInputMode(mode);
+
+    setPrefs((prev) => {
+      if (mode === "slider") {
+        return {
+          ...prev,
+          dailyBudget: getDailyBudgetFromSlider(budgetSliderValue),
+        };
+      }
+
+      return {
+        ...prev,
+        dailyBudget: hasValidCustomDailyBudget ? parsedCustomDailyBudget : prev.dailyBudget,
+      };
+    });
+  };
+
+  const handleDailyBudgetInputChange = (rawValue: string) => {
+    const digitsOnly = rawValue.replace(/[^\d]/g, "");
+    setDailyBudgetInput(digitsOnly);
+
+    if (!digitsOnly) {
+      if (isSliderMode) {
+        setPrefs((prev) => ({
+          ...prev,
+          dailyBudget: getDailyBudgetFromSlider(budgetSliderValue),
+        }));
+      }
+      return;
+    }
+
+    const numericDailyBudget = Number(digitsOnly);
+    const hasValidNumericDailyBudget =
+      Number.isFinite(numericDailyBudget) && numericDailyBudget > 0;
+
+    setPrefs((prev) => ({
+      ...prev,
+      dailyBudget:
+        isCustomMode && hasValidNumericDailyBudget
+          ? numericDailyBudget
+          : prev.dailyBudget,
     }));
   };
 
@@ -108,27 +207,39 @@ export default function AddTripPage() {
       return;
     }
 
-    if (!prefs.destination || !prefs.startDate || !prefs.endDate) return;
+    if (!prefs.destination || !prefs.startDate || !isBudgetInputValid) return;
 
     setSubmitError(null);
     setIsGenerating(true);
 
+    const dailyBudgetForGeneration = effectiveDailyBudget;
+
+    setPrefs((prev) => ({
+      ...prev,
+      dailyBudget: dailyBudgetForGeneration,
+    }));
+
+    // Initialize abort controller and 10-second timeout
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    try {
-      const trip = await generateTrip(
-        {
-          titleOrDestination: prefs.destination.trim(),
-          startDate: prefs.startDate,
-          endDate: prefs.endDate,
-          travelers: travelerMap[prefs.travelers],
-          budget: budgetMap[prefs.budget],
-          interests: prefs.interests,
-        },
-        { signal: controller.signal },
-      );
+    timeoutRef.current = setTimeout(() => {
+      handleCancel();
+    }, 10000);
 
+    try {
+
+      // Simulate AI API request using the numeric daily budget per person.
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => resolve(dailyBudgetForGeneration), 5000);
+        controller.signal.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new Error("Aborted"));
+        });
+      });
+
+      // Cleanup after successful completion
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsGenerating(false);
       abortControllerRef.current = null;
       router.push(trip.id ? `/trips/${trip.id}` : "/trips");
@@ -247,27 +358,108 @@ export default function AddTripPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+            <label
+              className="flex items-center gap-2 text-sm font-medium text-slate-800"
+            >
               <span className="material-symbols-outlined text-base">savings</span>
               Budget level
             </label>
-            <div className="grid grid-cols-3 gap-3">
-              {(["Budget", "Medium", "Luxury"] as const).map((level) => (
-                <button
-                  key={level}
-                  type="button"
-                  onClick={() =>
-                    setPrefs((prev) => ({ ...prev, budget: level }))
-                  }
-                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
-                    prefs.budget === level
-                      ? "border-slate-900 bg-slate-900 text-white shadow"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+
+            <div role="radiogroup" aria-label="Budget input mode" className="space-y-4">
+              <div className="space-y-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-800">
+                  <input
+                    type="radio"
+                    name="budget-input-mode"
+                    value="slider"
+                    checked={isSliderMode}
+                    onChange={() => handleBudgetInputModeChange("slider")}
+                    className="h-4 w-4 accent-slate-900"
+                  />
+                  <span>Use budget slider</span>
+                </label>
+
+                <div
+                  className={`rounded-xl border border-slate-200 bg-white px-4 py-4 transition ${
+                    isCustomMode ? "pointer-events-none opacity-50" : "opacity-100"
+                  }`}
+                  aria-disabled={isCustomMode}
+                >
+                  <div className="mb-3 flex items-center justify-between text-sm">
+                    <span className="font-medium text-slate-700">{sliderBudgetLevel}</span>
+                    <span className="font-semibold text-slate-900">~ ${sliderDailyBudget} / day</span>
+                  </div>
+                  <input
+                    id="budget-level-slider"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={budgetSliderValue}
+                    onChange={(e) => handleBudgetSliderChange(Number(e.target.value))}
+                    className="h-2 w-full cursor-pointer accent-slate-900"
+                    disabled={isCustomMode}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={budgetSliderValue}
+                    aria-valuetext={`${sliderBudgetLevel}, approximately ${sliderDailyBudget} USD per day`}
+                  />
+                  <div className="mt-3 flex justify-between text-xs text-slate-500">
+                    <span>$80/day</span>
+                    <span>$150/day</span>
+                    <span>$300/day</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-800">
+                  <input
+                    type="radio"
+                    name="budget-input-mode"
+                    value="custom"
+                    checked={isCustomMode}
+                    onChange={() => handleBudgetInputModeChange("custom")}
+                    className="h-4 w-4 accent-slate-900"
+                  />
+                  <span>Use exact daily budget</span>
+                </label>
+
+                <div
+                  className={`relative transition ${
+                    isCustomMode ? "opacity-100" : "pointer-events-none opacity-50"
                   }`}
                 >
-                  {level}
-                </button>
-              ))}
+                  <label htmlFor="daily-budget-input" className="sr-only">
+                    Daily budget per person
+                  </label>
+                  <input
+                    id="daily-budget-input"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="150"
+                    className={`w-full rounded-xl border px-4 py-3 pr-28 text-slate-900 outline-none transition focus:ring-2 focus:ring-slate-200 ${
+                      showCustomBudgetValidation
+                        ? "border-red-300 focus:border-red-400"
+                        : "border-slate-200 focus:border-slate-400"
+                    } disabled:cursor-not-allowed disabled:bg-slate-100`}
+                    value={dailyBudgetInput}
+                    onChange={(e) => handleDailyBudgetInputChange(e.target.value)}
+                    aria-describedby={showCustomBudgetValidation ? "daily-budget-validation" : undefined}
+                    disabled={!isCustomMode}
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-slate-500">
+                    USD / day
+                  </span>
+                </div>
+
+                {showCustomBudgetValidation && (
+                  <p id="daily-budget-validation" className="text-xs text-red-600">
+                    Enter a daily budget greater than 0.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
