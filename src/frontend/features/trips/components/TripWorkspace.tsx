@@ -89,9 +89,9 @@ export default function TripWorkspace({
   const heading = trip?.titleOrDestination && trip.titleOrDestination.trim() !== "" ? trip.titleOrDestination : tripId;
   const dateRange =
     trip?.startDate && trip?.endDate
-      ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(
+      ? `${new Date(trip.startDate).toLocaleDateString("en-US")} - ${new Date(
             trip.endDate,
-          ).toLocaleDateString()}`
+          ).toLocaleDateString("en-US")}`
       : null;
 
   const viewContent = useMemo(() => {

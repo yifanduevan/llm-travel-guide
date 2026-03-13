@@ -543,9 +543,9 @@ export default function ItineraryView({
   const header = "Your Journey";
   const dates =
     trip?.startDate && trip?.endDate
-      ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(
+      ? `${new Date(trip.startDate).toLocaleDateString("en-US")} - ${new Date(
             trip.endDate,
-          ).toLocaleDateString()}`
+          ).toLocaleDateString("en-US")}`
       : "Dates TBD";
 
   return (
