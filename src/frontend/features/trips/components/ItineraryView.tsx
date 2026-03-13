@@ -1,51 +1,7 @@
 "use client";
-
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  closestCenter,
-  DndContext,
-  DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
-  pointerWithin,
-  rectIntersection,
-  useSensor,
-  useSensors,
-  type CollisionDetection,
-  type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { generateItinerary, getItinerary } from "@/features/trips/api";
-import type { ItineraryItem } from "@/features/trips/itineraryTypes";
-import ConfirmOverlay from "./ConfirmOverlay";
-import EditItineraryItemModal from "./itinerary/EditItineraryItemModal";
-import ItineraryDaySection from "./itinerary/ItineraryDaySection";
-import ItineraryEmptyDaySection from "./itinerary/ItineraryEmptyDaySection";
-import ItineraryItemCard from "./itinerary/ItineraryItemCard";
-import PackingListPanel from "./itinerary/PackingListPanel";
-import { buildNextItineraryDay, splitDayLabel } from "./itinerary/dayUtils";
-import {
-  findItemById,
-  getDayDropZoneId,
-  hydrateTimelineDays,
-  isEmptyDayPlaceholder,
-  moveItemForDrag,
-  toBuildableDay,
-  toClientDay,
-  withClientItemId,
-} from "./itinerary/dragDropUtils";
-import {
-  formatPickerTimeToDisplay,
-  parseDisplayTimeToPicker,
-} from "./itinerary/timeUtils";
-import type {
-  EditableItineraryItem,
-  EditingItemForm,
-  EditingItemTarget,
-  ItineraryTimelineEntry,
-} from "./itinerary/types";
+import { useEffect, useMemo, useState } from "react";
+import { getItinerary, generateItinerary } from "@/features/trips/api";
+import type { ItineraryDay } from "@/features/trips/itineraryTypes";
 
 type ItineraryViewProps = {
   editable?: boolean;
@@ -72,7 +28,8 @@ export default function ItineraryView({
 }: ItineraryViewProps) {
   const [days, setDays] = useState<ItineraryTimelineEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
     "idle",
@@ -195,84 +152,26 @@ export default function ItineraryView({
     };
   }, [resolvedTripId, reloadTick]);
 
-  useEffect(() => {
-    setStatus("idle");
-    setErrorMessage(null);
-  }, [resolvedTripId]);
-
-  const runGenerateItinerary = async () => {
-    setStatus("loading");
-    setErrorMessage(null);
-
+  const handleGenerate = async () => {
+    if (!resolvedTripId || generating) return;
+    setGenerating(true);
+    setError(null);
     try {
       const data = await generateItinerary(resolvedTripId);
-      setDays(hydrateTimelineDays(data));
-      setStatus("success");
-    } catch (err) {
-      setStatus("error");
-      setErrorMessage(
-        err instanceof Error ? err.message : "Generation failed. Please try again.",
-      );
+      setDays(Array.isArray(data) ? data : []);
+    } catch {
+      setError("Failed to generate itinerary. Please try again.");
+    } finally {
+      setGenerating(false);
     }
   };
 
-  const handleConfirmDeleteItem = () => {
-    if (!confirmItemDeleteTarget) return;
-
-    setDays((prev) =>
-      prev
-        .map((entry, dayIndex) => {
-          if (isEmptyDayPlaceholder(entry)) {
-            return entry;
-          }
-
-          if (dayIndex !== confirmItemDeleteTarget.dayIndex) {
-            return entry;
-          }
-
-          return {
-            ...entry,
-            items: entry.items.filter(
-              (_, itemIndex) => itemIndex !== confirmItemDeleteTarget.itemIndex,
-            ),
-          };
-        })
-        .filter((entry) => isEmptyDayPlaceholder(entry) || entry.items.length > 0),
-    );
-
-    setConfirmItemDeleteTarget(null);
-  };
-
-  const handleConfirmDeleteDay = () => {
-    if (!confirmDayDeleteTarget) return;
-
-    setDays((prev) => {
-      const targetEntry = prev[confirmDayDeleteTarget.dayIndex];
-      if (!targetEntry || isEmptyDayPlaceholder(targetEntry)) {
-        return prev;
-      }
-
-      const isLastDayInTimeline = confirmDayDeleteTarget.dayIndex === prev.length - 1;
-      if (isLastDayInTimeline) {
-        return prev.filter((_, index) => index !== confirmDayDeleteTarget.dayIndex);
-      }
-
-      const placeholder = {
-        clientDayId: targetEntry.clientDayId,
-        type: "emptyDay",
-        dayNumber: getDayNumberFromLabel(
-          targetEntry.label,
-          confirmDayDeleteTarget.dayIndex + 1,
-        ),
-        date: targetEntry.date,
-      } as const;
-
-      return prev.map((entry, index) =>
-        index === confirmDayDeleteTarget.dayIndex ? placeholder : entry,
-      );
-    });
-
-    setConfirmDayDeleteTarget(null);
+  const addPackingItem = () => {
+    if (newItemText.trim()) {
+      setPackingItems([...packingItems, { text: newItemText.trim(), checked: false }]);
+      setNewItemText("");
+      setIsExpanded(false);
+    }
   };
 
   const openEditItemModal = (
@@ -556,20 +455,24 @@ export default function ItineraryView({
             <h2 className="text-3xl font-semibold text-slate-900">{header}</h2>
             <p className="mt-1 text-sm text-slate-600">{dates}</p>
           </div>
-          {!editable && (
+          <div className="flex items-center gap-3">
             <button
-              className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary disabled:cursor-not-allowed disabled:opacity-70"
-              onClick={runGenerateItinerary}
-              disabled={status === "loading"}
+              type="button"
+              onClick={handleGenerate}
+              disabled={generating || !resolvedTripId}
+              className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span
-                className={`material-symbols-outlined text-lg ${status === "loading" ? "animate-spin" : ""}`}
-              >
-                {status === "loading" ? "autorenew" : "edit_calendar"}
+              <span className={`material-symbols-outlined text-lg ${generating ? "animate-spin" : ""}`}>
+                {generating ? "autorenew" : "auto_awesome"}
               </span>
-              {status === "loading" ? "Generating..." : "Generate Itinerary"}
+              {generating ? "Generating..." : "Generate with AI"}
             </button>
-          )}
+            <button className="flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-sm btn-primary">
+              <span className="material-symbols-outlined text-lg">edit_calendar</span>
+              {editable ? "Edit dates" : "View dates"}
+            </button>
+          </div>
+
         </div>
 
         {status === "loading" && (

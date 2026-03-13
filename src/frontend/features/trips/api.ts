@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from '../../lib/apiClient';
-import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from '../../lib/types';
-import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, getMockItinerary } from './mock';
+import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto, ActivityDto } from '../../lib/types';
+import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, mockActivities, getMockItinerary } from './mock';
 import type { ItineraryDay, ItineraryItem } from './itineraryTypes';
 
 export type CreateTripInput = {
@@ -414,4 +414,43 @@ function formatDiningNote(reservation: DiningReservationDto): string {
   if (reservation.address) return reservation.address;
   if (reservation.notes) return reservation.notes;
   return 'Reservation details to be confirmed.';
+}
+
+type GeneratedItineraryResponse = {
+  days: Array<{
+    date: string;
+    items: Array<{
+      title: string;
+      description: string;
+      time: string;
+      category: string;
+      locationText: string;
+    }>;
+  }>;
+};
+
+export async function generateItinerary(tripId: string): Promise<ItineraryDay[]> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+    return getMockItinerary(tripId);
+  }
+
+  const response = await apiPost<undefined, GeneratedItineraryResponse>(
+    `/api/trips/${tripId}/generate-itinerary`,
+    undefined,
+  );
+
+  if (!response?.days) return [];
+
+  return response.days.map((day, index) => ({
+    label: `Day ${index + 1}`,
+    date: day.date ?? 'TBD',
+    active: index === 0,
+    items: (day.items ?? []).map((item) => ({
+      icon: 'event',
+      title: item.title ?? 'Untitled',
+      time: item.time ?? 'TBD',
+      note: item.description ?? item.locationText ?? '',
+      muted: false,
+    })),
+  }));
 }

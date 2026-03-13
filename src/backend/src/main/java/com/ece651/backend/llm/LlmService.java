@@ -118,7 +118,8 @@ public class LlmService {
                             Map.of("role", "system", "content", systemPrompt),
                             Map.of("role", "user", "content", userPrompt)),
                     "temperature", 0.5,
-                    "max_tokens", 2000);
+                    "max_tokens", 2000,
+                    "response_format", Map.of("type", "json_object"));
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
