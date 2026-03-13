@@ -92,6 +92,8 @@ config.local.*
 coverage/
 *.lcov
 .nyc_output/
+playwright-report/
+test-results/
 
 # =========================
 # Misc
@@ -100,4 +102,3 @@ coverage/
 *.tmp
 *.temp
 *.bak
-

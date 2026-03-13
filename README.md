@@ -90,6 +90,11 @@ npm run dev
 
 The frontend will start on `http://localhost:3000`
 
+### Run both frontend and backend
+```bash
+./scripts/run.sh both
+```
+
 ### Environment Variables
 
 Create a `.env` file or set these environment variables:
@@ -158,3 +163,4 @@ refactor: extract trip validation logic
 ## License
 
 This project is for educational purposes as part of ECE 651 coursework at the University of Waterloo.
+
