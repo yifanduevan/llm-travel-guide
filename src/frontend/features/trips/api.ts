@@ -434,7 +434,7 @@ export async function generateItinerary(tripId: string): Promise<ItineraryDay[]>
     return getMockItinerary(tripId);
   }
 
-  const response = await apiPost<undefined, GeneratedItineraryResponse>(
+  const response = await apiPost<GeneratedItineraryResponse>(
     `/api/trips/${tripId}/generate-itinerary`,
     undefined,
   );
