@@ -1,4 +1,4 @@
-import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto, ActivityDto } from '../../lib/types';
+import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from '../../lib/types';
 import type { ItineraryDay } from './itineraryTypes';
 
 export const mockTrips: TripDto[] = [
@@ -273,7 +273,6 @@ export const mockTransportSegments: TransportSegmentDto[] = [
     imageUrl: 'https://example.com/car.jpg',
   },
 ];
-
 
 const mockItinerariesByTripId: Record<number, ItineraryDay[]> = {
   1: [
