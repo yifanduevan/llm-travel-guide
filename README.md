@@ -97,15 +97,39 @@ The frontend will start on `http://localhost:3000`
 
 ### Environment Variables
 
-Create a `.env` file or set these environment variables:
+For local development, define frontend environment variables in `src/frontend/.env.local`.
+
+The AI itinerary proxy route is implemented in `src/frontend/app/api/ai/itinerary/route.ts` and is used by the **Generate Itinerary** action in the trip itinerary view.
+
+Required variables for the AI itinerary route:
+
+| Variable | Required | Scope | Used by | Behavior if missing |
+|----------|----------|-------|---------|---------------------|
+| `NEXT_PUBLIC_USE_MOCK` | Recommended (`false` for real backend) | Client + server (`NEXT_PUBLIC`) | `src/frontend/features/trips/api.ts` | If `true`, frontend uses mock itinerary data and does not call `/api/ai/itinerary` |
+| `LLM_SERVICE_URL` | Yes (when mock mode is off) | Server-only | `src/frontend/app/api/ai/itinerary/route.ts` | Route returns `503` with `{ "error": "LLM service is not configured" }` |
+| `LLM_SERVICE_TOKEN` | Yes (when mock mode is off) | Server-only | `src/frontend/app/api/ai/itinerary/route.ts` | Route returns `503` with `{ "error": "LLM service is not configured" }` |
+
+Copy-paste example (`src/frontend/.env.local`):
+
+```bash
+NEXT_PUBLIC_USE_MOCK=false
+LLM_SERVICE_URL=https://your-llm-service.example.com/itinerary
+LLM_SERVICE_TOKEN=replace-with-llm-service-token
+```
+
+Contract used by the route (`POST /api/ai/itinerary`):
+
+- Proxies the incoming JSON body to an external service URL from `LLM_SERVICE_URL`
+- Sends `Authorization: Bearer <LLM_SERVICE_TOKEN>`
+- Forwards upstream non-2xx status as `{ "error": "LLM service failed" }`
+
+Backend/database variables (existing setup):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DB_URL` | `jdbc:postgresql://127.0.0.1:5432/ece651` | Database connection URL |
 | `DB_USER` | `ece651` | Database username |
 | `DB_PASSWORD` | `password` | Database password |
-| `LLM_API_KEY` | (required for AI) | OpenAI API key for itinerary generation |
-| `LLM_MODEL` | `gpt-4o-mini` | OpenAI model (e.g. gpt-4o, gpt-4o-mini) |
 
 ## Development
 
@@ -148,7 +172,7 @@ refactor: extract trip validation logic
 | GET | `/api/trips/{id}` | Get trip details |
 | PUT | `/api/trips/{id}` | Update a trip |
 | DELETE | `/api/trips/{id}` | Delete a trip |
-| POST | `/api/trips/{id}/generate-itinerary` | Generate AI itinerary (requires `LLM_API_KEY`) |
+| POST | `/api/ai/itinerary` | Frontend server route that proxies itinerary generation to external LLM service (`LLM_SERVICE_URL` + `LLM_SERVICE_TOKEN`) |
 
 ## Team Members
 

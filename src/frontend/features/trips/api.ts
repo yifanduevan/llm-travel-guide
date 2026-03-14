@@ -1,7 +1,17 @@
 import { apiGet, apiPost } from '../../lib/apiClient';
-import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto, ActivityDto } from '../../lib/types';
-import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, mockActivities, getMockItinerary } from './mock';
+import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from '../../lib/types';
+import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, getMockItinerary } from './mock';
 import type { ItineraryDay, ItineraryItem } from './itineraryTypes';
+
+export type CreateTripInput = {
+  titleOrDestination: string;
+  startDate: string | null;
+  endDate: string | null;
+  travelers: string;
+  budget: string;
+  notes?: string | null;
+  status?: string;
+};
 
 function wait(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -28,6 +38,45 @@ export async function getTrip(id: string): Promise<TripDto> {
     return mockTrips.find(t => t.id === id) || mockTrip;
   }
   return apiGet<TripDto>(`/api/trips/${id}`);
+}
+
+/**
+ * Create a trip.
+ * @param input - Trip payload.
+ * @param signal - Optional abort signal.
+ * @returns Promise<TripDto>
+ */
+export async function createTrip(
+  input: CreateTripInput,
+  signal?: AbortSignal,
+): Promise<TripDto> {
+  const payload = {
+    titleOrDestination: input.titleOrDestination,
+    startDate: input.startDate ?? undefined,
+    endDate: input.endDate ?? undefined,
+    travelers: input.travelers,
+    budget: input.budget,
+    notes: input.notes ?? undefined,
+    status: input.status ?? 'DRAFT',
+  };
+
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    const now = new Date().toISOString();
+    const createdTrip: TripDto = {
+      id: `mock-${Date.now()}`,
+      ...payload,
+      createdAt: now,
+      updatedAt: now,
+    };
+    mockTrips.unshift(createdTrip);
+    return createdTrip;
+  }
+
+  return apiPost<TripDto>('/api/trips', payload, { signal });
 }
 
 /**
@@ -64,34 +113,6 @@ export async function getTransportSegments(tripId: string): Promise<TransportSeg
     return mockTransportSegments.filter(t => t.tripId === tripId);
   }
   return apiGet<TransportSegmentDto[]>(`/api/trips/${tripId}/transport-segments`);
-}
-
-/**
- * Get activities for a trip.
- * @param tripId - The trip ID.
- * @returns Promise<ActivityDto[]>
- */
-export async function getActivities(tripId: string): Promise<ActivityDto[]> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return mockActivities.filter(a => a.tripId === tripId);
-  }
-  return apiGet<ActivityDto[]>(`/api/trips/${tripId}/activities`);
-}
-
-export async function generateTrip(request: GenerateTripRequest, init: RequestInit = {}): Promise<TripDto> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return {
-      id: crypto.randomUUID(),
-      titleOrDestination: request.titleOrDestination,
-      startDate: request.startDate,
-      endDate: request.endDate,
-      travelers: request.travelers,
-      budget: request.budget,
-      status: "DRAFT",
-      notes: `Mock generated plan for ${request.titleOrDestination}.`,
-    };
-  }
-  return apiPost<TripDto>('/api/trips/generate', request, init);
 }
 
 /**
@@ -252,11 +273,10 @@ function coerceItineraryItem(raw: unknown): ItineraryItem | null {
 }
 
 async function buildItineraryFromRelatedEndpoints(tripId: string): Promise<ItineraryDay[]> {
-  const [segments, accommodations, dining, activities] = await Promise.all([
+  const [segments, accommodations, dining] = await Promise.all([
     getTransportSegments(tripId),
     getAccommodations(tripId),
     getDiningReservations(tripId),
-    getActivities(tripId),
   ]);
 
   const entries: Array<{ key: string; date?: Date; item: ItineraryItem }> = [];
@@ -302,20 +322,6 @@ async function buildItineraryFromRelatedEndpoints(tripId: string): Promise<Itine
         time: formatTime(reservation.time),
         note: formatDiningNote(reservation),
         image: reservation.imageUrl ?? undefined,
-      },
-    });
-  });
-
-  activities.forEach(activity => {
-    entries.push({
-      key: 'unscheduled',
-      item: {
-        icon: 'local_activity',
-        title: activity.title || 'Activity',
-        time: 'TBD',
-        note: activity.description || 'Details to be confirmed.',
-        image: activity.imageUrl ?? undefined,
-        muted: true,
       },
     });
   });

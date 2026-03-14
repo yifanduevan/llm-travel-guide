@@ -2,6 +2,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DateRangePicker from "@/features/trips/components/DateRangePicker";
+import { createTrip } from "@/features/trips/api";
 
 type BudgetTier = "Budget" | "Medium" | "Luxury";
 type BudgetInputMode = "slider" | "custom";
@@ -33,6 +34,19 @@ const BUDGET_MARKS = {
 } as const;
 
 const DEFAULT_BUDGET_SLIDER_VALUE = 50;
+
+const travelerToApiValue: Record<UserPreferences["travelers"], string> = {
+  Solo: "SOLO",
+  Couple: "COUPLE",
+  Family: "FAMILY",
+  Group: "GROUP",
+};
+
+const budgetToApiValue: Record<BudgetTier, string> = {
+  Budget: "BUDGET",
+  Medium: "MEDIUM",
+  Luxury: "LUXURY",
+};
 
 function getBudgetLevelFromSlider(sliderValue: number): BudgetTier {
   if (sliderValue < 34) return "Budget";
@@ -201,13 +215,15 @@ export default function AddTripPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    
+
     if (isGenerating) {
       handleCancel();
       return;
     }
 
-    if (!prefs.destination || !prefs.startDate || !isBudgetInputValid) return;
+    if (!prefs.destination || !prefs.startDate || !prefs.endDate || !isBudgetInputValid) {
+      return;
+    }
 
     setSubmitError(null);
     setIsGenerating(true);
@@ -228,15 +244,27 @@ export default function AddTripPage() {
     }, 10000);
 
     try {
+      const notes = [
+        prefs.interests.length > 0
+          ? `Interests: ${prefs.interests.join(", ")}`
+          : null,
+        `Daily budget: ${dailyBudgetForGeneration} USD/day`,
+      ]
+        .filter(Boolean)
+        .join(" | ");
 
-      // Simulate AI API request using the numeric daily budget per person.
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => resolve(dailyBudgetForGeneration), 5000);
-        controller.signal.addEventListener("abort", () => {
-          clearTimeout(timer);
-          reject(new Error("Aborted"));
-        });
-      });
+      await createTrip(
+        {
+          titleOrDestination: prefs.destination.trim(),
+          startDate: prefs.startDate,
+          endDate: prefs.endDate,
+          travelers: travelerToApiValue[prefs.travelers],
+          budget: budgetToApiValue[prefs.budget],
+          notes,
+          status: "DRAFT",
+        },
+        controller.signal,
+      );
 
       // Cleanup after successful completion
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -245,31 +273,10 @@ export default function AddTripPage() {
       router.push(trip.id ? `/trips/${trip.id}` : "/trips");
     } catch (err: unknown) {
       setIsGenerating(false);
-      abortControllerRef.current = null;
 
-      if (err instanceof Error && (err.name === "AbortError" || err.message === "Aborted")) {
-        setSubmitError("Trip generation cancelled.");
-        return;
-      }
-
-      if (err instanceof Error) {
-        if (err.message.startsWith("400")) {
-          setSubmitError("Trip generation request is invalid. Check the dates and required fields.");
-          return;
-        }
-        if (err.message.startsWith("500")) {
-          setSubmitError("Backend trip generation failed. Check the backend logs and database connection.");
-          return;
-        }
-        setSubmitError(err.message);
-        return;
-      }
-
-      setSubmitError("Trip generation failed.");
-    } finally {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+      if (!(err instanceof Error && (err.name === "AbortError" || err.message === "Aborted"))) {
+        console.error("Failed to create trip", err);
+        alert("Failed to create trip. Please try again.");
       }
     }
   };

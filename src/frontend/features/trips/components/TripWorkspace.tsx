@@ -6,7 +6,6 @@ import ItineraryView from "./ItineraryView";
 import DiningView from "./DiningView";
 import TransportationView from "@/features/trips/components/TransportationView";
 import AccommodationsView from "./AccommodationsView";
-import ActivitiesView from "./ActivitiesView";
 import { ViewName } from "../types";
 import type { TransportMode } from "../iconMap";
 import type { PriceLevel } from "../utils/diningPrice";
@@ -122,8 +121,6 @@ export default function TripWorkspace({
             accommodations={accommodations}
           />
         );
-      case "activities":
-        return <ActivitiesView trip={trip} tripId={tripId} />;
       default:
         return (
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -163,7 +160,7 @@ export default function TripWorkspace({
           {dateRange && <p className="text-sm">{dateRange}</p>}
           <p className="text-sm">
             Switch tabs to manage itinerary, dining, transportation, stays, and
-            activities.
+            trip details.
           </p>
         </div>
         {isEditable && (

@@ -64,16 +64,3 @@ export interface TransportSegmentDto {
   completed?: boolean;
   imageUrl?: string;
 }
-
-export interface ActivityDto {
-  id?: string;
-  tripId?: string;
-  title?: string;
-  price?: string;
-  rating?: string;
-  badge?: string;
-  badgeTone?: string;
-  imageUrl?: string;
-  description?: string;
-  pills?: string[];
-}
