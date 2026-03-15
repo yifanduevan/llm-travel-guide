@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ECE651 Travel Planner API
-  version: 1.0.0
+  version: 2.0.0
 servers:
   - url: http://localhost:8080
 paths:
@@ -95,6 +95,50 @@ paths:
           description: No Content
         '404':
           description: Not Found
+
+  /api/ai/itinerary:
+    post:
+      summary: Generate itinerary via AI proxy
+      description: |
+        Next.js proxy route for AI itinerary generation.
+        Returns 503 Service Unavailable when LLM_SERVICE_URL or LLM_SERVICE_TOKEN is not configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiItineraryProxyRequest'
+      responses:
+        '200':
+          description: Itinerary generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiItineraryResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '502':
+          description: Upstream LLM service failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: LLM service is not configured (LLM_SERVICE_URL or LLM_SERVICE_TOKEN missing)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Failed to process itinerary request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
 
   /api/trips/{tripId}/accommodations:
     parameters:
@@ -329,6 +373,77 @@ paths:
 
 components:
   schemas:
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        upstreamStatus:
+          type: integer
+          format: int32
+        upstreamError:
+          type: object
+          additionalProperties: true
+    AiItineraryProxyRequest:
+      type: object
+      required: [tripId, trip]
+      properties:
+        tripId:
+          type: string
+          format: uuid
+        trip:
+          $ref: '#/components/schemas/AiItineraryTripInput'
+    AiItineraryTripInput:
+      type: object
+      required: [titleOrDestination, startDate, endDate]
+      properties:
+        titleOrDestination:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        travelers:
+          type: string
+        budget:
+          type: string
+        interests:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+          nullable: true
+    AiItineraryResponse:
+      type: object
+      properties:
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiItineraryDay'
+    AiItineraryDay:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiItineraryItem'
+    AiItineraryItem:
+      type: object
+      properties:
+        title:
+          type: string
+        time:
+          type: string
+        description:
+          type: string
+        locationText:
+          type: string
     TripDto:
       type: object
       properties:
@@ -467,8 +582,12 @@ components:
           type: string
     DiningReservationDto:
       type: object
+      required: [tripId]
       properties:
         id:
+          type: string
+          format: uuid
+        tripId:
           type: string
           format: uuid
         name:
