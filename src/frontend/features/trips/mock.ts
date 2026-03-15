@@ -65,7 +65,7 @@ export const mockAccommodations: AccommodationDto[] = [
   },
 ];
 
-export const mockDiningReservations: Array<DiningReservationDto & { tripId: string }> = [
+export const mockDiningReservations: DiningReservationDto[] = [
   {
     id: 'paris-1',
     tripId: '1',

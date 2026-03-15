@@ -31,7 +31,7 @@ export interface AccommodationDto {
 
 export interface DiningReservationDto {
   id?: string;
-  tripId?: string;
+  tripId: string;
   name?: string;
   time?: string;
   cuisine?: string;

@@ -2,6 +2,28 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+function extractErrorMessage(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const candidates = [record.message, record.error, record.detail];
+
+  for (const candidate of candidates) {
+    const message = extractErrorMessage(candidate);
+    if (message) {
+      return message;
+    }
+  }
+
+  return null;
+}
+
 type ItineraryRequestBody = {
   tripId?: string;
   trip?: {
@@ -50,7 +72,26 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      return NextResponse.json({ error: "LLM service failed" }, { status: response.status });
+      let upstreamBody: unknown = null;
+
+      try {
+        upstreamBody = await response.json();
+      } catch {
+        // Upstream may return non-JSON bodies; fallback message handles this path.
+      }
+
+      const fallbackMessage = `LLM service failed (status ${response.status})`;
+      const errorMessage = extractErrorMessage(upstreamBody) ?? fallbackMessage;
+
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          upstreamStatus: response.status,
+          upstreamError:
+            upstreamBody && typeof upstreamBody === "object" ? upstreamBody : undefined,
+        },
+        { status: response.status },
+      );
     }
 
     const data = await response.json();
