@@ -123,34 +123,6 @@ export async function getTransportSegments(tripId: string): Promise<TransportSeg
 }
 
 /**
- * Get activities for a trip.
- * @param tripId - The trip ID.
- * @returns Promise<ActivityDto[]>
- */
-export async function getActivities(tripId: string): Promise<ActivityDto[]> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return mockActivities.filter(a => a.tripId === tripId);
-  }
-  return apiGet<ActivityDto[]>(`/api/trips/${tripId}/activities`);
-}
-
-export async function generateTrip(request: GenerateTripRequest, init: RequestInit = {}): Promise<TripDto> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return {
-      id: crypto.randomUUID(),
-      titleOrDestination: request.titleOrDestination,
-      startDate: request.startDate,
-      endDate: request.endDate,
-      travelers: request.travelers,
-      budget: request.budget,
-      status: "DRAFT",
-      notes: `Mock generated plan for ${request.titleOrDestination}.`,
-    };
-  }
-  return apiPost<TripDto>('/api/trips/generate', request, init);
-}
-
-/**
  * Get itinerary for a trip.
  * @param tripId - The trip ID.
  * @returns Promise<ItineraryDay[]>
@@ -184,50 +156,14 @@ export async function generateItinerary(tripId: string): Promise<ItineraryDay[]>
     return getMockItinerary(tripId);
   }
 
-  try {
-    const trip = await getTrip(tripId);
-    const response = await fetch('/api/ai/itinerary', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        tripId,
-        trip: {
-          titleOrDestination: trip.titleOrDestination ?? '',
-          startDate: trip.startDate ?? '',
-          endDate: trip.endDate ?? '',
-          travelers: trip.travelers ?? 'COUPLE',
-          budget: trip.budget ?? 'MEDIUM',
-          notes: trip.notes ?? null,
-        },
-      }),
-    });
+  const response = await apiPost<{ days?: unknown[] }>(
+    `/api/trips/${tripId}/generate-itinerary`,
+    undefined,
+  );
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Itinerary endpoint is not implemented on backend (404).');
-      }
-      let message = `Failed to generate itinerary (${response.status})`;
-      try {
-        const payload = await response.json() as { error?: string };
-        if (payload.error) {
-          message = payload.error;
-        }
-      } catch {
-      }
-      throw new Error(message);
-    }
-
-    const payload = await response.json() as { days?: unknown[] };
-    const mapped = mapLlmDaysToUi(payload.days);
-    if (mapped.length > 0) {
-      return mapped;
-    }
-    throw new Error('Invalid LLM response');
-  } catch (error) {
-    throw error;
-  }
+  const mapped = mapLlmDaysToUi(response?.days);
+  if (mapped.length > 0) return mapped;
+  return [];
 }
 
 function mapLlmDaysToUi(days: unknown): ItineraryDay[] {
@@ -443,43 +379,4 @@ function formatDiningNote(reservation: DiningReservationDto): string {
   if (reservation.address) return reservation.address;
   if (reservation.notes) return reservation.notes;
   return 'Reservation details to be confirmed.';
-}
-
-type GeneratedItineraryResponse = {
-  days: Array<{
-    date: string;
-    items: Array<{
-      title: string;
-      description: string;
-      time: string;
-      category: string;
-      locationText: string;
-    }>;
-  }>;
-};
-
-export async function generateItinerary(tripId: string): Promise<ItineraryDay[]> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
-    return getMockItinerary(tripId);
-  }
-
-  const response = await apiPost<GeneratedItineraryResponse>(
-    `/api/trips/${tripId}/generate-itinerary`,
-    undefined,
-  );
-
-  if (!response?.days) return [];
-
-  return response.days.map((day, index) => ({
-    label: `Day ${index + 1}`,
-    date: day.date ?? 'TBD',
-    active: index === 0,
-    items: (day.items ?? []).map((item) => ({
-      icon: 'event',
-      title: item.title ?? 'Untitled',
-      time: item.time ?? 'TBD',
-      note: item.description ?? item.locationText ?? '',
-      muted: false,
-    })),
-  }));
 }
