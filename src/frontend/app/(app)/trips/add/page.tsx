@@ -113,6 +113,8 @@ export default function AddTripPage() {
   const [budgetSliderValue, setBudgetSliderValue] = useState(DEFAULT_BUDGET_SLIDER_VALUE);
   const [dailyBudgetInput, setDailyBudgetInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Control refs for cancellation and timeout management
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -333,6 +335,8 @@ export default function AddTripPage() {
       return;
     }
 
+    setError(null);
+    setSubmitError(null);
     setIsGenerating(true);
 
     const dailyBudgetForGeneration = effectiveDailyBudget;
@@ -387,6 +391,10 @@ export default function AddTripPage() {
     } catch (err: unknown) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsGenerating(false);
+      abortControllerRef.current = null;
+
+      const extractedMessage = extractErrorMessage(err);
+      setError(extractedMessage);
 
       if (!(err instanceof Error && (err.name === "AbortError" || err.message === "Aborted"))) {
         console.error("Failed to create trip", err);
@@ -700,6 +708,12 @@ export default function AddTripPage() {
               Selected {selectedCount} / {interestOptions.length}
             </p>
           </div>
+
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
