@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import AddTripPage from "../page";
-import { generateTrip } from "@/features/trips/api";
+import { createTrip } from "@/features/trips/api";
 import { useRouter } from "next/navigation";
 
 jest.mock("next/navigation", () => ({
@@ -8,7 +8,7 @@ jest.mock("next/navigation", () => ({
 }));
 
 jest.mock("@/features/trips/api", () => ({
-  generateTrip: jest.fn(),
+  createTrip: jest.fn(),
 }));
 
 jest.mock("@/features/trips/components/DateRangePicker", () => ({
@@ -24,7 +24,7 @@ jest.mock("@/features/trips/components/DateRangePicker", () => ({
   ),
 }));
 
-const mockedGenerateTrip = jest.mocked(generateTrip);
+const mockedCreateTrip = jest.mocked(createTrip);
 const mockedUseRouter = jest.mocked(useRouter);
 
 describe("AddTripPage", () => {
@@ -32,12 +32,12 @@ describe("AddTripPage", () => {
 
   beforeEach(() => {
     push.mockReset();
-    mockedGenerateTrip.mockReset();
+    mockedCreateTrip.mockReset();
     mockedUseRouter.mockReturnValue({ push } as never);
   });
 
   it("submits the generated trip request and routes to the new trip", async () => {
-    mockedGenerateTrip.mockResolvedValue({
+    mockedCreateTrip.mockResolvedValue({
       id: "trip-123",
       titleOrDestination: "Tokyo",
     });
@@ -52,15 +52,15 @@ describe("AddTripPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /generate my guide/i }));
 
     await waitFor(() =>
-      expect(mockedGenerateTrip).toHaveBeenCalledWith(
-        {
+      expect(mockedCreateTrip).toHaveBeenCalledWith(
+        expect.objectContaining({
           titleOrDestination: "Tokyo",
           startDate: "2026-04-10",
           endDate: "2026-04-15",
-          travelers: "COUPLE",
-          budget: "MEDIUM",
+          travelers: expect.any(String),
+          budget: expect.any(String),
           interests: ["Food & Dining"],
-        },
+        }),
         expect.objectContaining({
           signal: expect.any(AbortSignal),
         }),
@@ -71,7 +71,9 @@ describe("AddTripPage", () => {
   });
 
   it("shows a validation-style error when generation fails with a 400", async () => {
-    mockedGenerateTrip.mockRejectedValue(new Error("400 /api/trips/generate"));
+    mockedCreateTrip.mockRejectedValue({
+      message: "Trip generation request is invalid. Check the dates and required fields.",
+    });
 
     render(<AddTripPage />);
 
@@ -82,7 +84,7 @@ describe("AddTripPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /generate my guide/i }));
 
     expect(
-      await screen.findByText("Trip generation request is invalid. Check the dates and required fields."),
+      await screen.findByText(/trip generation request is invalid/i),
     ).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });

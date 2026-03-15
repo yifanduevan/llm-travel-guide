@@ -430,6 +430,7 @@ export function DateTimePicker({
         {formatDisplayDate(value)}
       </button>
 
+      {/* Render the popover outside the main DOM hierarchy to avoid hydration mismatches and CSS stacking-context issues. */}
       {isOpen && typeof document !== "undefined" && createPortal(
         <div
           ref={panelRef}

@@ -51,6 +51,28 @@ const budgetToApiValue: Record<BudgetTier, string> = {
   Luxury: "LUXURY",
 };
 
+function extractErrorMessage(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const candidates = [record.message, record.error, record.detail];
+
+  for (const candidate of candidates) {
+    const message = extractErrorMessage(candidate);
+    if (message) {
+      return message;
+    }
+  }
+
+  return null;
+}
+
 function getBudgetLevelFromSlider(sliderValue: number): BudgetTier {
   if (sliderValue < 34) return "Budget";
   if (sliderValue < 67) return "Medium";

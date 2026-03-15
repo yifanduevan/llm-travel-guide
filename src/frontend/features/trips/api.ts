@@ -48,13 +48,15 @@ export async function getTrip(id: string): Promise<TripDto> {
 /**
  * Create a trip.
  * @param input - Trip payload.
- * @param signal - Optional abort signal.
+ * @param options - Optional request options.
  * @returns Promise<TripDto>
  */
 export async function createTrip(
   input: CreateTripInput,
-  signal?: AbortSignal,
+  options?: CreateTripOptions,
 ): Promise<TripDto> {
+  const signal = options?.signal;
+
   const payload = {
     titleOrDestination: input.titleOrDestination,
     startDate: input.startDate ?? undefined,
