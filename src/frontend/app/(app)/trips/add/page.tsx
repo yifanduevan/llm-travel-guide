@@ -121,10 +121,7 @@ export default function AddTripPage() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = previous;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
@@ -404,8 +401,8 @@ export default function AddTripPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-120px)] items-center justify-center overflow-hidden bg-slate-50 px-4">
-      <div className="w-full max-w-3xl translate-y-2 rounded-2xl bg-white p-8 shadow-xl sm:p-10 relative">
+    <div className="mx-auto w-full max-w-3xl px-0 pb-10 pt-2 sm:px-2">
+      <div className="relative w-full rounded-2xl bg-white p-8 shadow-xl sm:p-10">
         <button
           type="button"
           aria-label="Close"
