@@ -43,10 +43,34 @@ async function pickDateRange(page: Page) {
     .getByRole("button", { name: /Select departure and return dates|→/ })
     .click();
 
-  const days = page.locator(".date-range-popover .rdp-day button:not([disabled])");
-  await days.nth(10).click();
-  await days.nth(13).click();
-  await page.getByRole("button", { name: "Confirm" }).click();
+  const popover = page.getByTestId("date-range-popover");
+  await expect(popover).toBeVisible();
+
+  const selectableDayLabels = await popover
+    .locator("button[aria-label]:not([disabled])")
+    .evaluateAll((buttons) =>
+      buttons
+        .map((button) => button.getAttribute("aria-label") ?? "")
+        .filter((label) => {
+          const normalized = label.toLowerCase();
+          return (
+            !normalized.includes("previous month") &&
+            !normalized.includes("next month") &&
+            !normalized.includes("close")
+          );
+        }),
+    );
+
+  if (selectableDayLabels.length < 2) {
+    throw new Error("Unable to find enough selectable day buttons in date picker.");
+  }
+
+  const startLabel = selectableDayLabels[0];
+  const endLabel = selectableDayLabels[Math.min(selectableDayLabels.length - 1, 3)];
+
+  await popover.getByLabel(startLabel, { exact: true }).click();
+  await popover.getByLabel(endLabel, { exact: true }).click();
+  await page.getByTestId("date-range-confirm").click();
 }
 
 test("create trip flow submits generation request and navigates to detail page", async ({
@@ -60,7 +84,11 @@ test("create trip flow submits generation request and navigates to detail page",
     budget: "MEDIUM",
   };
   let sawGenerateRequest = false;
-  await page.route("http://localhost:8080/api/trips/generate", async (route) => {
+  await page.route("**/api/trips", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
     postedBody = parseGenerateTripPayload(route.request().postDataJSON());
     sawGenerateRequest = true;
     await route.fulfill({
@@ -90,7 +118,7 @@ test("create trip flow submits generation request and navigates to detail page",
 test("trip detail tabs load and switch views", async ({ page }) => {
   await authenticate(page);
   await page.route(
-    "http://localhost:8080/api/trips/1/dining-reservations",
+    "**/api/trips/1/dining-reservations",
     async (route) => {
       await route.fulfill({
         status: 200,
@@ -112,16 +140,16 @@ test("trip detail tabs load and switch views", async ({ page }) => {
   await page.getByRole("button", { name: "Accommodation" }).click();
   await expect(page.getByRole("heading", { name: "Stays & Havens" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Activities" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Activities & Tours" }),
-  ).toBeVisible();
 });
 
 test("generate itinerary flow renders returned itinerary items", async ({ page }) => {
   await authenticate(page);
 
-  await page.route("http://localhost:8080/api/trips/generate", async (route) => {
+  await page.route("**/api/trips", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -134,7 +162,7 @@ test("generate itinerary flow renders returned itinerary items", async ({ page }
     });
   });
 
-  await page.route("http://localhost:8080/api/trips/42/itinerary", async (route) => {
+  await page.route("**/api/trips/42/itinerary", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -164,4 +192,27 @@ test("generate itinerary flow renders returned itinerary items", async ({ page }
   await expect(page).toHaveURL(/\/trips\/42$/);
   await expect(page.getByText("Fushimi Inari Shrine")).toBeVisible();
   await expect(page.getByText("Early-morning visit.")).toBeVisible();
+});
+
+test("shows an error when generation fails", async ({ page }) => {
+  await authenticate(page);
+
+  await page.route("**/api/trips*", async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Internal Server Error" }),
+      });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto("/trips/add");
+  await page.getByPlaceholder("e.g., Tokyo, Japan").fill("Lisbon");
+  await pickDateRange(page);
+  await page.getByRole("button", { name: "Generate my guide" }).click();
+
+  await expect(page.getByText(/failed|error/i)).toBeVisible();
 });

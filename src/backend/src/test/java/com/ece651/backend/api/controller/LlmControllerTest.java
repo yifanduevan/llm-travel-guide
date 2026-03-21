@@ -4,17 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.ece651.backend.api.dto.LlmItineraryRequest;
+import com.ece651.backend.api.dto.LlmItineraryResponse;
 import com.ece651.backend.domain.entity.Trip;
 import com.ece651.backend.domain.entity.User;
 import com.ece651.backend.domain.enums.Budget;
 import com.ece651.backend.domain.enums.Travelers;
 import com.ece651.backend.domain.enums.TripStatus;
-import com.ece651.backend.llm.LlmService;
-import com.ece651.backend.llm.dto.ItineraryDayLlmDto;
-import com.ece651.backend.llm.dto.ItineraryItemLlmDto;
 import com.ece651.backend.llm.dto.ItineraryResponseLlmDto;
 import com.ece651.backend.repository.TripRepository;
 import com.ece651.backend.repository.UserRepository;
+import com.ece651.backend.service.LlmService;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -80,7 +80,7 @@ class LlmControllerTest {
         when(userRepository.findAll()).thenReturn(List.of(testUser));
         when(tripRepository.findByIdAndUserId(any(UUID.class), any(UUID.class)))
                 .thenReturn(Optional.of(testTrip));
-        when(llmService.generateItinerary(any(Trip.class))).thenReturn(null);
+        when(llmService.generateItinerary(any(LlmItineraryRequest.class))).thenReturn(null);
 
         ResponseEntity<ItineraryResponseLlmDto> response =
                 controller.generateItinerary(testTrip.getId());
@@ -94,13 +94,16 @@ class LlmControllerTest {
         when(tripRepository.findByIdAndUserId(any(UUID.class), any(UUID.class)))
                 .thenReturn(Optional.of(testTrip));
 
-        ItineraryResponseLlmDto mockResponse = new ItineraryResponseLlmDto(
-                List.of(new ItineraryDayLlmDto("2026-07-01",
-                        List.of(new ItineraryItemLlmDto(
-                                "Senso-ji Temple", "Historic temple",
-                                "09:00", "unspecified", "Asakusa, Tokyo")))));
+        LlmItineraryResponse mockResponse = new LlmItineraryResponse(
+                List.of(new LlmItineraryResponse.Day(
+                        "2026-07-01",
+                        List.of(new LlmItineraryResponse.Item(
+                                "Senso-ji Temple",
+                                "09:00",
+                                "Historic temple",
+                                "Asakusa, Tokyo")))));
 
-        when(llmService.generateItinerary(any(Trip.class))).thenReturn(mockResponse);
+        when(llmService.generateItinerary(any(LlmItineraryRequest.class))).thenReturn(mockResponse);
 
         ResponseEntity<ItineraryResponseLlmDto> response =
                 controller.generateItinerary(testTrip.getId());

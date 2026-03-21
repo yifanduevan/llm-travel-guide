@@ -97,6 +97,7 @@ export default function DateRangePicker({
       <button
         ref={triggerRef}
         type="button"
+        data-testid="date-range-trigger"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-slate-900 outline-none transition hover:border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
       >
@@ -107,6 +108,7 @@ export default function DateRangePicker({
       {isOpen && (
         <div
           ref={popoverRef}
+          data-testid="date-range-popover"
           className="date-range-popover absolute left-1/2 -translate-x-1/2 top-full z-50 mt-2 w-[720px] max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white shadow-xl"
         >
           {/* Header Section */}
@@ -178,6 +180,7 @@ export default function DateRangePicker({
             <button
               type="button"
               onClick={handleConfirm}
+              data-testid="date-range-confirm"
               className="inline-flex btn-primary rounded-lg px-6 py-2.5 text-sm font-medium outline-none transition"
             >
               Confirm
