@@ -4,7 +4,7 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main" , "ci-coverage" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -58,6 +58,18 @@ jobs:
       - name: Install dependencies
         working-directory: src/frontend
         run: npm ci
+      - name: Run frontend unit tests with coverage
+        working-directory: src/frontend
+        env:
+          CI: true
+        run: npm run test -- --coverage --watch=false
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: src/frontend/coverage
+          if-no-files-found: warn
       # - name: Lint
       #   working-directory: src/frontend
       #   run: npm run lint
