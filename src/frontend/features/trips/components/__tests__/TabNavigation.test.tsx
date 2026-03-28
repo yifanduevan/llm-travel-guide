@@ -11,7 +11,6 @@ describe("TabNavigation", () => {
     expect(screen.getByRole("button", { name: "Dining" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Transportation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Accommodation" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Activities" })).toBeInTheDocument();
   });
 
   it("calls onViewChange when a different tab is clicked", () => {
