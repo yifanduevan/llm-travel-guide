@@ -29,7 +29,9 @@ class OpenAiTripGenerationServiceTest {
                 "gpt-test",
                 "http://localhost/unused");
 
-        TripGenerateRequest request = request(Budget.LUXURY, List.of(" art ", "", null, "food"));
+        TripGenerateRequest request = request(
+            Budget.LUXURY,
+            java.util.Arrays.asList(" art ", "", null, "food"));
 
         TripGenerationResult result = service.generatePlan(request);
 
