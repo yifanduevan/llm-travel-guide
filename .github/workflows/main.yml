@@ -39,10 +39,19 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Run backend tests
+      - name: Run backend tests with coverage
         working-directory: src/backend
-        run: mvn -B test
+        run: mvn -B verify
         # run: ./mvnw -B test
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-report
+          path: |
+            src/backend/target/site/jacoco
+            src/backend/target/jacoco.exec
+          if-no-files-found: warn
 
   frontend:
     name: Frontend
