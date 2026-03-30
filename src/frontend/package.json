@@ -13,7 +13,9 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:install": "playwright install",
     "test": "jest --watchman=false",
-    "test:watch": "jest --watch --watchman=false"
+    "test:watch": "jest --watch --watchman=false",
+    "test:unit": "jest --watchman=false --ci",
+    "test:coverage": "jest --watchman=false --ci --coverage"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

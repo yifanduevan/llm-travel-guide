@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom";
 
-Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
-  value: jest.fn(),
-  writable: true,
-});
+if (typeof window !== "undefined" && window.HTMLElement?.prototype) {
+  Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
+    value: jest.fn(),
+    writable: true,
+  });
+}

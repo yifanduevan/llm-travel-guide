@@ -10,6 +10,10 @@ const config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
+  testMatch: [
+    "<rootDir>/**/__tests__/**/*.[jt]s?(x)",
+    "<rootDir>/**/?(*.)+(test).[jt]s?(x)",
+  ],
   testPathIgnorePatterns: [
     "<rootDir>/.next/",
     "<rootDir>/node_modules/",
@@ -20,6 +24,8 @@ const config = {
     "features/**/*.{ts,tsx}",
     "!**/*.d.ts",
   ],
+  coverageDirectory: "<rootDir>/coverage",
+  coverageReporters: ["text", "text-summary", "lcov", "html"],
   watchman: false,
 };
 

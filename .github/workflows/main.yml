@@ -66,18 +66,14 @@ jobs:
       - name: Install dependencies
         working-directory: src/frontend
         run: npm ci
-      - name: Run frontend unit tests with coverage
+      - name: Run Jest unit tests with coverage
         working-directory: src/frontend
         env:
           CI: true
-        run: npm run test -- --coverage --watch=false
-      - name: Upload frontend coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-coverage-report
-          path: src/frontend/coverage
-          if-no-files-found: warn
+        run: npm run test:coverage
+      # - name: Lint
+      #   working-directory: src/frontend
+      #   run: npm run lint
       - name: Build
         working-directory: src/frontend
         run: npm run build
@@ -97,4 +93,11 @@ jobs:
           path: |
             src/frontend/playwright-report
             src/frontend/test-results
+          if-no-files-found: ignore
+      - name: Upload Jest coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-coverage
+          path: src/frontend/coverage
           if-no-files-found: ignore
