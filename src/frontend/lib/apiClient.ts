@@ -45,3 +45,17 @@ export async function apiPut<T>(
     body: JSON.stringify(body),
   });
 }
+
+export async function apiDelete(
+  path: string,
+  init?: Omit<RequestInit, 'method'>,
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...(init ?? {}),
+    method: 'DELETE',
+  });
+
+  if (!res.ok) {
+    throw new Error(`${res.status} ${path}`);
+  }
+}

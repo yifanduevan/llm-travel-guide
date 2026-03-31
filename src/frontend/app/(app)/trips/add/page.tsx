@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DateRangePicker from "@/features/trips/components/DateRangePicker";
-import { createTrip } from "@/features/trips/api";
+import { generateItinerary, generateTrip } from "@/features/trips/api";
 
 type BudgetTier = "Budget" | "Medium" | "Luxury";
 type BudgetInputMode = "slider" | "custom";
@@ -359,29 +359,26 @@ export default function AddTripPage() {
     }, 10000);
 
     try {
-      const notes = [
-        prefs.interests.length > 0
-          ? `Interests: ${prefs.interests.join(", ")}`
-          : null,
-        `Daily budget: ${dailyBudgetForGeneration} USD/day`,
-      ]
-        .filter(Boolean)
-        .join(" | ");
-
-      await createTrip(
+      const trip = await generateTrip(
         {
           titleOrDestination: prefs.destination.trim(),
-          startDate: prefs.startDate,
-          endDate: prefs.endDate,
+          startDate: prefs.startDate!,
+          endDate: prefs.endDate!,
           travelers: travelerToApiValue[prefs.travelers],
           budget: budgetToApiValue[prefs.budget],
-          notes,
-          status: "DRAFT",
+          interests: prefs.interests,
         },
         controller.signal,
       );
 
-      // Cleanup after successful completion
+      if (trip.id) {
+        try {
+          await generateItinerary(trip.id);
+        } catch {
+          // Keep trip initialization non-blocking even if itinerary generation fails.
+        }
+      }
+
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsGenerating(false);
       router.push("/trips");

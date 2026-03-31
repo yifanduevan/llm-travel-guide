@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '../../lib/apiClient';
+import { apiDelete, apiGet, apiPost } from '../../lib/apiClient';
 import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from '../../lib/types';
 import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, getMockItinerary } from './mock';
 import type { ItineraryDay, ItineraryItem } from './itineraryTypes';
@@ -18,6 +18,15 @@ export type CreateTripOptions = {
   signal?: AbortSignal;
 };
 
+export type GenerateTripInput = {
+  titleOrDestination: string;
+  startDate: string;
+  endDate: string;
+  travelers: string;
+  budget: string;
+  interests?: string[];
+};
+
 function wait(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -31,6 +40,23 @@ export async function getTrips(): Promise<TripDto[]> {
     return mockTrips;
   }
   return apiGet<TripDto[]>('/api/trips');
+}
+
+/**
+ * Delete a trip by ID.
+ * @param id - The trip ID.
+ * @returns Promise<void>
+ */
+export async function deleteTrip(id: string): Promise<void> {
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+    const idx = mockTrips.findIndex((trip) => trip.id === id);
+    if (idx >= 0) {
+      mockTrips.splice(idx, 1);
+    }
+    return;
+  }
+
+  await apiDelete(`/api/trips/${id}`);
 }
 
 /**
@@ -84,6 +110,52 @@ export async function createTrip(
   }
 
   return apiPost<TripDto>('/api/trips', payload, { signal });
+}
+
+/**
+ * Generate a trip with initial suggestions (transport, dining, accommodations, activities).
+ * @param input - Trip generation payload.
+ * @param options - Optional request options.
+ * @returns Promise<TripDto>
+ */
+export async function generateTrip(
+  input: GenerateTripInput,
+  options?: CreateTripOptions,
+): Promise<TripDto> {
+  const signal = options?.signal;
+
+  const payload = {
+    titleOrDestination: input.titleOrDestination,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    travelers: input.travelers,
+    budget: input.budget,
+    interests: input.interests ?? [],
+  };
+
+  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    const now = new Date().toISOString();
+    const createdTrip: TripDto = {
+      id: `mock-${Date.now()}`,
+      titleOrDestination: payload.titleOrDestination,
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      travelers: payload.travelers,
+      budget: payload.budget,
+      notes: '',
+      status: 'DRAFT',
+      createdAt: now,
+      updatedAt: now,
+    };
+    mockTrips.unshift(createdTrip);
+    return createdTrip;
+  }
+
+  return apiPost<TripDto>('/api/trips/generate', payload, { signal });
 }
 
 /**
@@ -233,11 +305,15 @@ function coerceItineraryDay(raw: unknown): ItineraryDay | null {
 function coerceItineraryItem(raw: unknown): ItineraryItem | null {
   if (!raw || typeof raw !== 'object') return null;
   const record = raw as Record<string, unknown>;
+  const noteFromRecord = String(record.note ?? '').trim();
+  const description = String(record.description ?? '').trim();
+  const locationText = String(record.locationText ?? '').trim();
+  const note = noteFromRecord || [description, locationText].filter(Boolean).join(' • ');
   return {
     icon: String(record.icon ?? 'event'),
     title: String(record.title ?? 'Untitled'),
     time: String(record.time ?? 'TBD'),
-    note: String(record.note ?? ''),
+    note: note || 'Details to be confirmed.',
     image: record.image ? String(record.image) : undefined,
     muted: Boolean(record.muted),
   };

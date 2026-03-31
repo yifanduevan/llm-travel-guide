@@ -31,6 +31,9 @@ public class ItineraryItem {
     @Column(name = "time")
     private OffsetDateTime time;
 
+    @Column(name = "time_text")
+    private String timeText;
+
     @Convert(converter = com.ece651.backend.domain.converter.ItineraryItemCategoryConverter.class)
     @Column(nullable = false, columnDefinition = "itinerary_item_category_enum")
     private ItineraryItemCategory category;
@@ -58,6 +61,7 @@ public class ItineraryItem {
             String title,
             String description,
             OffsetDateTime time,
+            String timeText,
             ItineraryItemCategory category,
             String locationText,
             String linkUrl,
@@ -69,6 +73,7 @@ public class ItineraryItem {
         this.title = title;
         this.description = description;
         this.time = time;
+        this.timeText = timeText;
         this.category = category;
         this.locationText = locationText;
         this.linkUrl = linkUrl;
@@ -115,6 +120,14 @@ public class ItineraryItem {
 
     public void setTime(OffsetDateTime time) {
         this.time = time;
+    }
+
+    public String getTimeText() {
+        return timeText;
+    }
+
+    public void setTimeText(String timeText) {
+        this.timeText = timeText;
     }
 
     public ItineraryItemCategory getCategory() {

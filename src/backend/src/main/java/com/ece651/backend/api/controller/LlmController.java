@@ -9,10 +9,13 @@ import com.ece651.backend.llm.dto.ItineraryItemLlmDto;
 import com.ece651.backend.llm.dto.ItineraryResponseLlmDto;
 import com.ece651.backend.repository.TripRepository;
 import com.ece651.backend.repository.UserRepository;
+import com.ece651.backend.service.LlmItineraryPersistenceService;
 import com.ece651.backend.service.LlmService;
 import java.util.List;
 import java.util.UUID;
+import jakarta.transaction.Transactional;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +28,7 @@ public class LlmController {
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
     private final LlmService llmService;
+    private final LlmItineraryPersistenceService itineraryPersistenceService;
 
     private UUID getCurrentUserId() {
         return userRepository.findAll().stream()
@@ -36,13 +40,16 @@ public class LlmController {
     public LlmController(
             TripRepository tripRepository,
             UserRepository userRepository,
-            LlmService llmService) {
+            LlmService llmService,
+            LlmItineraryPersistenceService itineraryPersistenceService) {
         this.tripRepository = tripRepository;
         this.userRepository = userRepository;
         this.llmService = llmService;
+        this.itineraryPersistenceService = itineraryPersistenceService;
     }
 
     @PostMapping("/{id}/generate-itinerary")
+    @Transactional
     public ResponseEntity<ItineraryResponseLlmDto> generateItinerary(@PathVariable UUID id) {
         UUID userId = getCurrentUserId();
         if (userId == null) {
@@ -63,8 +70,26 @@ public class LlmController {
         if (response == null) {
             return ResponseEntity.internalServerError().build();
         }
+        itineraryPersistenceService.persistGeneratedItinerary(trip, generated);
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/itinerary")
+    public ResponseEntity<ItineraryResponseLlmDto> getItinerary(@PathVariable UUID id) {
+        UUID userId = getCurrentUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Trip trip = tripRepository
+                .findByIdAndUserId(id, userId)
+                .orElse(null);
+        if (trip == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(itineraryPersistenceService.getPersistedItinerary(id));
     }
 
     private LlmItineraryRequest toRequest(UUID tripId, Trip trip) {

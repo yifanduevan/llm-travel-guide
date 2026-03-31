@@ -2,6 +2,7 @@ package com.ece651.backend.api.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ece651.backend.api.dto.LlmItineraryRequest;
@@ -14,6 +15,7 @@ import com.ece651.backend.domain.enums.TripStatus;
 import com.ece651.backend.llm.dto.ItineraryResponseLlmDto;
 import com.ece651.backend.repository.TripRepository;
 import com.ece651.backend.repository.UserRepository;
+import com.ece651.backend.service.LlmItineraryPersistenceService;
 import com.ece651.backend.service.LlmService;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -34,6 +36,7 @@ class LlmControllerTest {
     @Mock private TripRepository tripRepository;
     @Mock private UserRepository userRepository;
     @Mock private LlmService llmService;
+    @Mock private LlmItineraryPersistenceService itineraryPersistenceService;
 
     private LlmController controller;
     private User testUser;
@@ -41,7 +44,7 @@ class LlmControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new LlmController(tripRepository, userRepository, llmService);
+        controller = new LlmController(tripRepository, userRepository, llmService, itineraryPersistenceService);
 
         testUser = new User();
         testUser.setId(UUID.randomUUID());
@@ -113,5 +116,20 @@ class LlmControllerTest {
         assertThat(response.getBody().days()).hasSize(1);
         assertThat(response.getBody().days().get(0).items().get(0).title())
                 .isEqualTo("Senso-ji Temple");
+        verify(itineraryPersistenceService).persistGeneratedItinerary(testTrip, mockResponse);
+    }
+
+    @Test
+    void getItinerary_returns200_whenTripExists() {
+        when(userRepository.findAll()).thenReturn(List.of(testUser));
+        when(tripRepository.findByIdAndUserId(any(UUID.class), any(UUID.class)))
+                .thenReturn(Optional.of(testTrip));
+        ItineraryResponseLlmDto persisted = new ItineraryResponseLlmDto(List.of());
+        when(itineraryPersistenceService.getPersistedItinerary(testTrip.getId())).thenReturn(persisted);
+
+        ResponseEntity<ItineraryResponseLlmDto> response = controller.getItinerary(testTrip.getId());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isSameAs(persisted);
     }
 }
