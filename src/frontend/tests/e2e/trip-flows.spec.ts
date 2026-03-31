@@ -84,7 +84,7 @@ test("create trip flow submits generation request and navigates to detail page",
     budget: "MEDIUM",
   };
   let sawGenerateRequest = false;
-  await page.route("**/api/trips", async (route) => {
+  await page.route("**/api/trips/generate", async (route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
       return;
@@ -100,6 +100,13 @@ test("create trip flow submits generation request and navigates to detail page",
         startDate: "2026-04-10",
         endDate: "2026-04-15",
       }),
+    });
+  });
+  await page.route("**/api/trips/e2e-created-trip/generate-itinerary", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ days: [] }),
     });
   });
 
@@ -145,7 +152,7 @@ test("trip detail tabs load and switch views", async ({ page }) => {
 test("generate itinerary flow renders returned itinerary items", async ({ page }) => {
   await authenticate(page);
 
-  await page.route("**/api/trips", async (route) => {
+  await page.route("**/api/trips/generate", async (route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
       return;
@@ -158,6 +165,27 @@ test("generate itinerary flow renders returned itinerary items", async ({ page }
         titleOrDestination: "Kyoto",
         startDate: "2026-05-01",
         endDate: "2026-05-06",
+      }),
+    });
+  });
+  await page.route("**/api/trips/42/generate-itinerary", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        days: [
+          {
+            date: "2026-05-01",
+            items: [
+              {
+                title: "Fushimi Inari Shrine",
+                time: "9:00 AM",
+                description: "Early-morning visit.",
+                locationText: "",
+              },
+            ],
+          },
+        ],
       }),
     });
   });
@@ -197,7 +225,7 @@ test("generate itinerary flow renders returned itinerary items", async ({ page }
 test("shows an error when generation fails", async ({ page }) => {
   await authenticate(page);
 
-  await page.route("**/api/trips*", async (route) => {
+  await page.route("**/api/trips/generate", async (route) => {
     if (route.request().method() === "POST") {
       await route.fulfill({
         status: 500,
@@ -214,5 +242,7 @@ test("shows an error when generation fails", async ({ page }) => {
   await pickDateRange(page);
   await page.getByRole("button", { name: "Generate my guide" }).click();
 
-  await expect(page.getByText(/failed|error/i)).toBeVisible();
+  await expect(
+    page.getByText(/backend trip generation failed/i),
+  ).toBeVisible();
 });
