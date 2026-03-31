@@ -51,28 +51,6 @@ const budgetToApiValue: Record<BudgetTier, string> = {
   Luxury: "LUXURY",
 };
 
-function extractErrorMessage(value: unknown): string | null {
-  if (typeof value === "string" && value.trim()) {
-    return value;
-  }
-
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-
-  const record = value as Record<string, unknown>;
-  const candidates = [record.message, record.error, record.detail];
-
-  for (const candidate of candidates) {
-    const message = extractErrorMessage(candidate);
-    if (message) {
-      return message;
-    }
-  }
-
-  return null;
-}
-
 function getBudgetLevelFromSlider(sliderValue: number): BudgetTier {
   if (sliderValue < 34) return "Budget";
   if (sliderValue < 67) return "Medium";
@@ -109,12 +87,8 @@ export default function AddTripPage() {
   const [budgetInputMode, setBudgetInputMode] = useState<BudgetInputMode>("slider");
   const [budgetSliderValue, setBudgetSliderValue] = useState(DEFAULT_BUDGET_SLIDER_VALUE);
   const [dailyBudgetInput, setDailyBudgetInput] = useState("");
-  const [budgetInputMode, setBudgetInputMode] = useState<BudgetInputMode>("slider");
-  const [budgetSliderValue, setBudgetSliderValue] = useState(DEFAULT_BUDGET_SLIDER_VALUE);
-  const [dailyBudgetInput, setDailyBudgetInput] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Control refs for cancellation and timeout management
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -314,27 +288,13 @@ export default function AddTripPage() {
     }));
   };
 
-  const handleCancel = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (abortControllerRef.current) abortControllerRef.current.abort();
-    setIsGenerating(false);
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (isGenerating) {
-      handleCancel();
-      return;
-    }
+    if (!prefs.destination || !prefs.startDate || !prefs.endDate || !isBudgetInputValid) return;
 
-    if (!prefs.destination || !prefs.startDate || !prefs.endDate || !isBudgetInputValid) {
-      return;
-    }
-
-    setError(null);
-    setSubmitError(null);
-    setIsGenerating(true);
+    setErrorMessage(null);
+    setStatus("loading");
 
     const dailyBudgetForGeneration = effectiveDailyBudget;
 
@@ -343,14 +303,6 @@ export default function AddTripPage() {
       dailyBudget: dailyBudgetForGeneration,
     }));
 
-    const dailyBudgetForGeneration = effectiveDailyBudget;
-
-    setPrefs((prev) => ({
-      ...prev,
-      dailyBudget: dailyBudgetForGeneration,
-    }));
-
-    // Initialize abort controller and 10-second timeout
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -379,19 +331,38 @@ export default function AddTripPage() {
       }
 
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      setIsGenerating(false);
-      router.push("/trips");
+      setStatus("success");
+      abortControllerRef.current = null;
+      router.push(trip.id ? `/trips/${trip.id}` : "/trips");
     } catch (err: unknown) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      setIsGenerating(false);
       abortControllerRef.current = null;
 
-      const extractedMessage = extractErrorMessage(err);
-      setError(extractedMessage);
+      if (err instanceof Error && (err.name === "AbortError" || err.message === "Aborted")) {
+        setStatus("idle");
+        setErrorMessage(null);
+        return;
+      }
 
-      if (!(err instanceof Error && (err.name === "AbortError" || err.message === "Aborted"))) {
-        console.error("Failed to create trip", err);
-        alert("Failed to create trip. Please try again.");
+      setStatus("error");
+
+      if (err instanceof Error) {
+        if (err.message.startsWith("400")) {
+          setErrorMessage("Trip creation request is invalid. Check the dates and required fields.");
+          return;
+        }
+        if (err.message.startsWith("500")) {
+          setErrorMessage("Backend trip creation failed. Check the backend logs and database connection.");
+          return;
+        }
+        setErrorMessage(err.message);
+        return;
+      }
+
+      setErrorMessage("Trip creation failed. Please try again.");
+    } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     }
   };
@@ -702,27 +673,23 @@ export default function AddTripPage() {
             </p>
           </div>
 
-          {error && (
+          {errorMessage && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
+              {errorMessage}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={!isGenerating && !isFormValid}
-            className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-4 text-white transition ${
-              isGenerating 
-                ? "bg-red-500 hover:bg-red-600 shadow-inner" 
-                : "bg-slate-900 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
-            }`}
+            disabled={status === "loading" || !isFormValid}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-4 text-white transition bg-slate-900 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isGenerating ? (
+            {status === "loading" ? (
               <>
                 <span className="material-symbols-outlined animate-spin text-lg">
                   autorenew
                 </span>
-                Generating... (Click to Cancel)
+                Creating...
               </>
             ) : (
               <>Generate my guide</>

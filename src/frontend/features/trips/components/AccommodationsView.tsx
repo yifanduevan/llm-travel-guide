@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Accommodation } from "./TripWorkspace";
 import { getAccommodations } from "@/features/trips/api";
+import { API_BASE_URL } from "@/lib/apiClient";
 import type { AccommodationDto } from "@/lib/types";
 import OverlayModal from "./OverlayModal";
 import ConfirmOverlay from "./ConfirmOverlay";
@@ -20,6 +21,7 @@ type Props = {
   tripId: string;
   trip?: TripInfo;
   accommodations?: Accommodation[];
+  editable?: boolean;
 };
 
 type CreateAccommodationRequest = {
@@ -34,6 +36,20 @@ type CreateAccommodationRequest = {
   confirmationCode: string | null;
   tags: string[] | null;
   imageUrl: string | null;
+  notes: string | null;
+};
+
+type EditAccommodationForm = {
+  name: string;
+  address: string | null;
+  roomType: string | null;
+  checkIn: string | null;
+  checkOut: string | null;
+  rate: string | null;
+  currency: string | null;
+  status: string | null;
+  confirmationCode: string | null;
+  tags: string[] | null;
   notes: string | null;
 };
 
@@ -56,9 +72,8 @@ async function createAccommodation(
   tripId: string,
   payload: CreateAccommodationRequest,
 ): Promise<Accommodation> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   const res = await fetch(
-    `${baseUrl}/api/trips/${tripId}/accommodations`,
+    `${API_BASE_URL}/api/trips/${tripId}/accommodations`,
     {
       method: "POST",
       headers: {
@@ -74,7 +89,45 @@ async function createAccommodation(
   return (await res.json()) as Accommodation;
 }
 
-export default function AccommodationsView({ trip, tripId, accommodations }: Props) {
+async function updateAccommodation(
+  tripId: string,
+  accommodationId: string,
+  payload: EditAccommodationForm,
+): Promise<Accommodation> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/trips/${tripId}/accommodations/${accommodationId}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || "Failed to update accommodation");
+  }
+  return (await res.json()) as Accommodation;
+}
+
+function accommodationToEditForm(stay: Accommodation): EditAccommodationForm {
+  return {
+    name: stay.name,
+    address: stay.address,
+    roomType: stay.roomType,
+    checkIn: stay.checkIn,
+    checkOut: stay.checkOut,
+    rate: stay.rate,
+    currency: stay.currency,
+    status: stay.status,
+    confirmationCode: stay.confirmationCode,
+    tags: stay.tags,
+    notes: stay.notes,
+  };
+}
+
+export default function AccommodationsView({ trip, tripId, accommodations, editable = false }: Props) {
   const googleMapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY;
   const initial = useMemo(
     () =>
@@ -163,6 +216,10 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
   const [listError, setListError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<Accommodation | null>(null);
+  const [editTarget, setEditTarget] = useState<Accommodation | null>(null);
+  const [editFormState, setEditFormState] = useState<EditAccommodationForm | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -200,14 +257,67 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
 
   const noData = stays.length === 0;
 
+  const openEditModal = (stay: Accommodation) => {
+    setEditTarget(stay);
+    setEditFormState(accommodationToEditForm(stay));
+    setEditError(null);
+  };
+
+  const closeEditModal = () => {
+    setEditTarget(null);
+    setEditFormState(null);
+    setEditError(null);
+  };
+
+  const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!tripId || !editTarget || !editFormState) return;
+    setEditSaving(true);
+    setEditError(null);
+
+    const payload: EditAccommodationForm = {
+      ...editFormState,
+      name: editFormState.name.trim() || editTarget.name,
+      address: editFormState.address?.trim() || null,
+      roomType: editFormState.roomType?.trim() || null,
+      checkIn: editFormState.checkIn || null,
+      checkOut: editFormState.checkOut || null,
+      rate:
+        editFormState.rate !== null &&
+        editFormState.rate !== undefined &&
+        editFormState.rate.trim() !== ""
+          ? editFormState.rate.trim()
+          : null,
+      currency: editFormState.currency?.trim() || null,
+      status: editFormState.status?.trim().toUpperCase() || null,
+      confirmationCode: editFormState.confirmationCode?.trim() || null,
+      tags:
+        editFormState.tags && Array.isArray(editFormState.tags)
+          ? editFormState.tags
+          : null,
+      notes: editFormState.notes?.trim() || null,
+    };
+
+    try {
+      const updated = await updateAccommodation(tripId, editTarget.id, payload);
+      setStays((prev) =>
+        prev.map((s) => (s.id === editTarget.id ? { ...s, ...updated } : s)),
+      );
+      closeEditModal();
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Unable to update accommodation");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleDelete = async (stayId: string) => {
     if (!tripId || !stayId) return;
     setDeletingId(stayId);
     setListError(null);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
       const res = await fetch(
-        `${baseUrl}/api/trips/${tripId}/accommodations/${stayId}`,
+        `${API_BASE_URL}/api/trips/${tripId}/accommodations/${stayId}`,
         { method: "DELETE" },
       );
       if (!res.ok) {
@@ -453,15 +563,37 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
                       <button className="rounded-lg bg-slate-900/10 px-4 py-1.5 text-xs font-bold text-slate-900 transition hover:bg-slate-900/15">
                         Send reminder
                       </button>
+                    ) : editable ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                          onClick={() => openEditModal(stay)}
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                          onClick={() => setConfirmTarget(stay)}
+                          disabled={deletingId === stay.id}
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                          Delete
+                        </button>
+                      </div>
                     ) : (
-                      <button
-                        type="button"
-                              className="relative inline-flex items-center gap-1 text-sm font-bold text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 
+                      <a
+                        href="https://example.com"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="relative inline-flex items-center gap-1 text-sm font-bold text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 
                               focus-visible:ring-offset-2 after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-0 after:bg-slate-900 after:transition-all after:duration-300 hover:after:w-full"
                         >
                           View booking details
                             <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                      </button>
+                      </a>
                     )}
                   </div>
                 </div>
@@ -529,13 +661,26 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
                     <span className="text-xs text-slate-600">
                       Confirmation {stay.confirmationCode ?? "—"}
                     </span>
-                    <button
-                      type="button"
-                      className="relative inline-flex items-center gap-1 text-sm font-bold text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-0 after:bg-slate-900 after:transition-all after:duration-300 hover:after:w-full"
-                    >
-                      View details
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                    </button>
+                    {editable ? (
+                      <button
+                        type="button"
+                        className="relative inline-flex items-center gap-1 text-sm font-bold text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-0 after:bg-slate-900 after:transition-all after:duration-300 hover:after:w-full"
+                        onClick={() => openEditModal(stay)}
+                      >
+                        <span className="material-symbols-outlined text-sm">edit</span>
+                        Edit
+                      </button>
+                    ) : (
+                      <a
+                        href="https://example.com"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="relative inline-flex items-center gap-1 text-sm font-bold text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-0 after:bg-slate-900 after:transition-all after:duration-300 hover:after:w-full"
+                      >
+                        View details
+                        <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                      </a>
+                    )}
                   </div>
                   <button
                     onClick={() => setConfirmTarget(stay)}
@@ -927,6 +1072,223 @@ export default function AccommodationsView({ trip, tripId, accommodations }: Pro
             />
           </label>
         </form>
+      </OverlayModal>
+
+      <OverlayModal
+        open={!!editTarget && !!editFormState}
+        onClose={closeEditModal}
+        title="Edit accommodation"
+        description="Update the details of this stay."
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+              onClick={closeEditModal}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="edit-accommodation-form"
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              disabled={editSaving}
+            >
+              {editSaving && (
+                <span className="material-symbols-outlined animate-spin text-base">
+                  progress_activity
+                </span>
+              )}
+              Save changes
+            </button>
+          </div>
+        }
+      >
+        {editFormState && (
+          <form
+            id="edit-accommodation-form"
+            className="space-y-4"
+            onSubmit={handleEditSubmit}
+          >
+            {editError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {editError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Name
+                  <span className="text-red-500">*</span>
+                </span>
+                <input
+                  required
+                  value={editFormState.name}
+                  onChange={(e) =>
+                    setEditFormState((prev) => prev && { ...prev, name: e.target.value })
+                  }
+                  placeholder="Hotel name"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Room type
+                </span>
+                <input
+                  value={editFormState.roomType ?? ""}
+                  onChange={(e) =>
+                    setEditFormState((prev) => prev && { ...prev, roomType: e.target.value })
+                  }
+                  placeholder="Queen suite"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Check-in date
+                </span>
+                <input
+                  type="date"
+                  value={editFormState.checkIn ?? ""}
+                  onChange={(e) =>
+                    setEditFormState((prev) => prev && { ...prev, checkIn: e.target.value })
+                  }
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Check-out date
+                </span>
+                <input
+                  type="date"
+                  value={editFormState.checkOut ?? ""}
+                  onChange={(e) =>
+                    setEditFormState((prev) => prev && { ...prev, checkOut: e.target.value })
+                  }
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Rate per night
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={editFormState.rate ?? ""}
+                  onChange={(e) =>
+                    setEditFormState((prev) => prev && { ...prev, rate: e.target.value })
+                  }
+                  placeholder="250"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Currency
+                </span>
+                <input
+                  value={editFormState.currency ?? ""}
+                  onChange={(e) =>
+                    setEditFormState((prev) => prev && { ...prev, currency: e.target.value })
+                  }
+                  placeholder="USD"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Status
+                </span>
+                <select
+                  value={editFormState.status ?? ""}
+                  onChange={(e) =>
+                    setEditFormState((prev) => prev && { ...prev, status: e.target.value })
+                  }
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700 md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Address
+                </span>
+                <input
+                  value={editFormState.address ?? ""}
+                  onChange={(e) =>
+                    setEditFormState((prev) => prev && { ...prev, address: e.target.value })
+                  }
+                  placeholder="123 Main St, City"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Confirmation code
+                </span>
+                <input
+                  value={editFormState.confirmationCode ?? ""}
+                  onChange={(e) =>
+                    setEditFormState((prev) => prev && { ...prev, confirmationCode: e.target.value })
+                  }
+                  placeholder="ABC123"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Tags (comma separated)
+                </span>
+                <input
+                  value={(editFormState.tags ?? []).join(", ")}
+                  onChange={(e) =>
+                    setEditFormState((prev) =>
+                      prev && {
+                        ...prev,
+                        tags: e.target.value
+                          ? e.target.value.split(",").map((t) => t.trim()).filter(Boolean)
+                          : [],
+                      },
+                    )
+                  }
+                  placeholder="wifi, parking"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+                />
+              </label>
+            </div>
+
+            <label className="space-y-2 text-sm text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Notes
+              </span>
+              <textarea
+                rows={3}
+                value={editFormState.notes ?? ""}
+                onChange={(e) =>
+                  setEditFormState((prev) => prev && { ...prev, notes: e.target.value })
+                }
+                placeholder="Check-in instructions, parking, etc."
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+              />
+            </label>
+          </form>
+        )}
       </OverlayModal>
 
       <ConfirmOverlay

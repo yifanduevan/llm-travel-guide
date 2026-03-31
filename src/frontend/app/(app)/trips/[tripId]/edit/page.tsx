@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import TripEditor from "./trip-editor";
+import { API_BASE_URL } from "@/lib/apiClient";
 
 type EditTripPageProps = {
   params: Promise<{ tripId: string }>;
@@ -18,9 +19,8 @@ import {
 } from "@/features/trips/components/TripWorkspace";
 
 async function fetchTrip(tripId: string): Promise<TripDto | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   try {
-    const res = await fetch(`${baseUrl}/api/trips/${tripId}`, {
+    const res = await fetch(`${API_BASE_URL}/api/trips/${tripId}`, {
       cache: "no-store",
     });
     if (!res.ok) {
@@ -34,10 +34,9 @@ async function fetchTrip(tripId: string): Promise<TripDto | null> {
 }
 
 async function fetchSegments(tripId: string): Promise<TransportSegment[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   try {
     const res = await fetch(
-      `${baseUrl}/api/trips/${tripId}/transport-segments`,
+      `${API_BASE_URL}/api/trips/${tripId}/transport-segments`,
       {
         cache: "no-store",
       },
@@ -52,10 +51,9 @@ async function fetchSegments(tripId: string): Promise<TransportSegment[]> {
   }
 }
 async function fetchAccommodations(tripId: string): Promise<Accommodation[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
   try {
     const res = await fetch(
-      `${baseUrl}/api/trips/${tripId}/accommodations`,
+      `${API_BASE_URL}/api/trips/${tripId}/accommodations`,
       {
         cache: "no-store",
       },

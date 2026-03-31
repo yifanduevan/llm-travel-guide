@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost } from '../../lib/apiClient';
+import { apiGet, apiPost, USE_MOCK } from '../../lib/apiClient';
 import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from '../../lib/types';
 import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, getMockItinerary } from './mock';
 import type { ItineraryDay, ItineraryItem } from './itineraryTypes';
@@ -36,7 +36,7 @@ function wait(ms: number): Promise<void> {
  * @returns Promise<TripDto[]>
  */
 export async function getTrips(): Promise<TripDto[]> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+  if (USE_MOCK) {
     return mockTrips;
   }
   return apiGet<TripDto[]>('/api/trips');
@@ -65,7 +65,7 @@ export async function deleteTrip(id: string): Promise<void> {
  * @returns Promise<TripDto>
  */
 export async function getTrip(id: string): Promise<TripDto> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+  if (USE_MOCK) {
     return mockTrips.find(t => t.id === id) || mockTrip;
   }
   return apiGet<TripDto>(`/api/trips/${id}`);
@@ -93,7 +93,7 @@ export async function createTrip(
     status: input.status ?? 'DRAFT',
   };
 
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+  if (USE_MOCK) {
     if (signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError');
     }
@@ -164,7 +164,7 @@ export async function generateTrip(
  * @returns Promise<AccommodationDto[]>
  */
 export async function getAccommodations(tripId: string): Promise<AccommodationDto[]> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+  if (USE_MOCK) {
     return mockAccommodations.filter(a => a.tripId === tripId);
   }
   return apiGet<AccommodationDto[]>(`/api/trips/${tripId}/accommodations`);
@@ -176,7 +176,7 @@ export async function getAccommodations(tripId: string): Promise<AccommodationDt
  * @returns Promise<DiningReservationDto[]>
  */
 export async function getDiningReservations(tripId: string): Promise<DiningReservationDto[]> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+  if (USE_MOCK) {
     return mockDiningReservations.filter(d => d.tripId === tripId);
   }
   return apiGet<DiningReservationDto[]>(`/api/trips/${tripId}/dining-reservations`);
@@ -188,7 +188,7 @@ export async function getDiningReservations(tripId: string): Promise<DiningReser
  * @returns Promise<TransportSegmentDto[]>
  */
 export async function getTransportSegments(tripId: string): Promise<TransportSegmentDto[]> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+  if (USE_MOCK) {
     return mockTransportSegments.filter(t => t.tripId === tripId);
   }
   return apiGet<TransportSegmentDto[]>(`/api/trips/${tripId}/transport-segments`);
@@ -200,7 +200,7 @@ export async function getTransportSegments(tripId: string): Promise<TransportSeg
  * @returns Promise<ItineraryDay[]>
  */
 export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+  if (USE_MOCK) {
     return getMockItinerary(tripId);
   }
 
@@ -223,7 +223,7 @@ export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
  * @returns Promise<ItineraryDay[]>
  */
 export async function generateItinerary(tripId: string): Promise<ItineraryDay[]> {
-  if (process.env.NEXT_PUBLIC_USE_MOCK === 'true') {
+  if (USE_MOCK) {
     await wait(1200);
     return getMockItinerary(tripId);
   }
@@ -325,7 +325,6 @@ async function buildItineraryFromRelatedEndpoints(tripId: string): Promise<Itine
     getAccommodations(tripId),
     getDiningReservations(tripId),
   ]);
-  const activities: never[] = [];
 
   const entries: Array<{ key: string; date?: Date; item: ItineraryItem }> = [];
 

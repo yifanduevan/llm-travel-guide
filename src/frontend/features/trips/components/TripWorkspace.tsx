@@ -119,6 +119,7 @@ export default function TripWorkspace({
             trip={trip}
             tripId={tripId}
             accommodations={accommodations}
+            editable={isEditable}
           />
         );
       default:

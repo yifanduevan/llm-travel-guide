@@ -1,4 +1,9 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080';
+
+export const USE_MOCK =
+  process.env.NEXT_PUBLIC_USE_MOCK === 'true' &&
+  process.env.NEXT_PUBLIC_ALLOW_MOCK === 'true';
+
 
 async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
