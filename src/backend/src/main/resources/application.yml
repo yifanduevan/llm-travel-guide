@@ -34,6 +34,23 @@ logging:
 
 app:
   llm:
+    runtime:
+      # managed-api: use provider-managed API endpoints (e.g., api.openai.com)
+      # aws-service: use an AWS-hosted internal LLM proxy/service endpoint
+      mode: ${LLM_RUNTIME_MODE:managed-api}
+    secrets:
+      # env | aws-secrets-manager | aws-ssm
+      provider: ${LLM_SECRET_PROVIDER:env}
     openai:
+      # For local/dev fallback only. Production should use AWS Secrets Manager or SSM.
       api-key: ${OPENAI_API_KEY:}
+      # Secret reference for the API key. If provider=aws-secrets-manager use secret id/arn.
+      # If provider=aws-ssm use secure parameter name.
+      api-key-secret-ref: ${OPENAI_API_KEY_SECRET_REF:}
       chat-completions-url: ${OPENAI_CHAT_URL:https://api.openai.com/v1/chat/completions}
+      model: ${OPENAI_MODEL:gpt-4.1-mini}
+      endpoint: ${OPENAI_ENDPOINT:https://api.openai.com/v1/responses}
+    aws-service:
+      # Required only when LLM_RUNTIME_MODE=aws-service
+      chat-completions-url: ${AWS_LLM_CHAT_URL:}
+      responses-endpoint: ${AWS_LLM_RESPONSES_URL:}

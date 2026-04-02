@@ -131,6 +131,50 @@ Backend/database variables (existing setup):
 | `DB_USER` | `ece651` | Database username |
 | `DB_PASSWORD` | `password` | Database password |
 
+Backend LLM production configuration:
+
+1. Decide where the model runs:
+	- `LLM_RUNTIME_MODE=managed-api`: call managed provider endpoint (default OpenAI URLs).
+	- `LLM_RUNTIME_MODE=aws-service`: call your AWS-hosted LLM proxy/service endpoint.
+2. Keep keys out of Git. Use AWS secret stores for production:
+	- `LLM_SECRET_PROVIDER=aws-secrets-manager` with `OPENAI_API_KEY_SECRET_REF=<secret-id-or-arn>`
+	- or `LLM_SECRET_PROVIDER=aws-ssm` with `OPENAI_API_KEY_SECRET_REF=<secure-parameter-name>`
+3. Local-only fallback (not for prod): `OPENAI_API_KEY`.
+
+Additional backend LLM variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LLM_RUNTIME_MODE` | No | `managed-api` (default) or `aws-service` |
+| `LLM_SECRET_PROVIDER` | No | `env` (default), `aws-secrets-manager`, or `aws-ssm` |
+| `OPENAI_API_KEY_SECRET_REF` | Yes (for AWS secret providers) | Secret id/ARN (Secrets Manager) or secure parameter name (SSM) |
+| `OPENAI_CHAT_URL` | No | Managed API chat-completions endpoint |
+| `OPENAI_ENDPOINT` | No | Managed API responses endpoint |
+| `AWS_LLM_CHAT_URL` | Yes (when `LLM_RUNTIME_MODE=aws-service`) | AWS-hosted chat-completions endpoint |
+| `AWS_LLM_RESPONSES_URL` | Yes (when `LLM_RUNTIME_MODE=aws-service`) | AWS-hosted responses endpoint |
+
+### Backend LLM Deployment Runbook (Production)
+
+1. Create secret in AWS (choose one):
+	- Secrets Manager: store OpenAI key as plain secret string, record secret ARN/ID.
+	- SSM Parameter Store: store as SecureString, record parameter name.
+2. Ensure runtime IAM can read secret:
+	- Add `secretsmanager:GetSecretValue` for the secret, or
+	- Add `ssm:GetParameter` (+ `kms:Decrypt` if customer KMS key is used).
+3. Set deployment mode:
+	- Managed API path: `LLM_RUNTIME_MODE=managed-api`.
+	- AWS-hosted service path: `LLM_RUNTIME_MODE=aws-service` and set `AWS_LLM_CHAT_URL`, `AWS_LLM_RESPONSES_URL`.
+4. Set secret source:
+	- Secrets Manager: `LLM_SECRET_PROVIDER=aws-secrets-manager` and `OPENAI_API_KEY_SECRET_REF=<secret-arn-or-id>`.
+	- SSM: `LLM_SECRET_PROVIDER=aws-ssm` and `OPENAI_API_KEY_SECRET_REF=<secure-parameter-name>`.
+5. Keep secret out of Git:
+	- Do not commit any real key in `.env*`, YAML, or source code.
+	- `OPENAI_API_KEY` is allowed only for local development fallback.
+6. Deploy backend with environment variables above.
+7. Smoke test after deploy:
+	- Call backend trip generation endpoint.
+	- Verify non-empty generated result and no secret leakage in logs.
+
 ## Development
 
 ### Running Tests

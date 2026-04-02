@@ -28,24 +28,31 @@ public class OpenAiTripGenerationService implements TripGenerationService {
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
-    private final String apiKey;
+    private final LlmApiKeyResolver apiKeyResolver;
     private final String model;
-    private final String endpoint;
+    private final String deploymentMode;
+    private final String managedEndpoint;
+    private final String awsServiceEndpoint;
 
     public OpenAiTripGenerationService(
             ObjectMapper objectMapper,
-            @Value("${app.llm.openai.api-key:}") String apiKey,
+            LlmApiKeyResolver apiKeyResolver,
             @Value("${app.llm.openai.model:gpt-4.1-mini}") String model,
-            @Value("${app.llm.openai.endpoint:https://api.openai.com/v1/responses}") String endpoint) {
+            @Value("${app.llm.runtime.mode:managed-api}") String deploymentMode,
+            @Value("${app.llm.openai.endpoint:https://api.openai.com/v1/responses}") String managedEndpoint,
+            @Value("${app.llm.aws-service.responses-endpoint:}") String awsServiceEndpoint) {
         this.objectMapper = objectMapper;
-        this.apiKey = apiKey;
+        this.apiKeyResolver = apiKeyResolver;
         this.model = model;
-        this.endpoint = endpoint;
+        this.deploymentMode = deploymentMode == null ? "managed-api" : deploymentMode.trim().toLowerCase();
+        this.managedEndpoint = managedEndpoint;
+        this.awsServiceEndpoint = awsServiceEndpoint;
         this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     }
 
     @Override
     public TripGenerationResult generatePlan(TripGenerateRequest request) {
+        String apiKey = apiKeyResolver.resolveApiKey();
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("Trip generation fallback: OPENAI_API_KEY is missing or blank");
             return fallbackPlan(request);
@@ -53,7 +60,7 @@ public class OpenAiTripGenerationService implements TripGenerationService {
 
         try {
             String prompt = buildPrompt(request);
-            String responseBody = callOpenAi(prompt);
+            String responseBody = callOpenAi(prompt, apiKey);
             TripGenerationResult parsed = parsePlan(responseBody);
             if (parsed != null) {
                 return parsed;
@@ -65,7 +72,7 @@ public class OpenAiTripGenerationService implements TripGenerationService {
         return fallbackPlan(request);
     }
 
-    private String callOpenAi(String prompt) throws IOException, InterruptedException {
+    private String callOpenAi(String prompt, String apiKey) throws IOException, InterruptedException {
         String body = objectMapper.writeValueAsString(java.util.Map.of(
                 "model", model,
                 "input", List.of(
@@ -74,7 +81,7 @@ public class OpenAiTripGenerationService implements TripGenerationService {
                 "temperature", 0.7));
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint))
+            .uri(URI.create(resolveEndpoint()))
                 .timeout(Duration.ofSeconds(20))
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
@@ -347,5 +354,15 @@ public class OpenAiTripGenerationService implements TripGenerationService {
             return List.of();
         }
         return interests.stream().filter(Objects::nonNull).map(String::trim).filter(s -> !s.isEmpty()).toList();
+    }
+
+    private String resolveEndpoint() {
+        if ("aws-service".equals(deploymentMode)) {
+            if (awsServiceEndpoint == null || awsServiceEndpoint.isBlank()) {
+                throw new IllegalStateException("app.llm.runtime.mode=aws-service requires app.llm.aws-service.responses-endpoint");
+            }
+            return awsServiceEndpoint;
+        }
+        return managedEndpoint;
     }
 }

@@ -14,40 +14,52 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 @Service
 public class LlmService {
-    private static final URI OPENAI_CHAT_COMPLETIONS_URI = URI.create("https://api.openai.com/v1/chat/completions");
+    private static final Logger log = LoggerFactory.getLogger(LlmService.class);
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
-    private final String apiKey;
+    private final LlmApiKeyResolver apiKeyResolver;
     private final String model;
+    private final String deploymentMode;
+    private final URI managedApiUri;
+    private final URI awsServiceUri;
 
     public LlmService(
             ObjectMapper objectMapper,
-            @Value("${app.llm.openai.api-key:}") String apiKey,
-            @Value("${app.llm.openai.model:gpt-4o}") String model) {
+            LlmApiKeyResolver apiKeyResolver,
+            @Value("${app.llm.openai.model:gpt-4o}") String model,
+            @Value("${app.llm.runtime.mode:managed-api}") String deploymentMode,
+            @Value("${app.llm.openai.chat-completions-url:https://api.openai.com/v1/chat/completions}") String managedApiUrl,
+            @Value("${app.llm.aws-service.chat-completions-url:}") String awsServiceUrl) {
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newHttpClient();
-        this.apiKey = apiKey;
+        this.apiKeyResolver = apiKeyResolver;
         this.model = model;
+        this.deploymentMode = normalize(deploymentMode);
+        this.managedApiUri = URI.create(managedApiUrl);
+        this.awsServiceUri = StringUtils.hasText(awsServiceUrl) ? URI.create(awsServiceUrl) : null;
     }
 
     public boolean hasApiKey() {
-        return StringUtils.hasText(apiKey);
+        return StringUtils.hasText(apiKeyResolver.resolveApiKey());
     }
 
     public LlmItineraryResponse generateItinerary(LlmItineraryRequest request) {
+        String apiKey = apiKeyResolver.resolveApiKey();
         if (!hasApiKey()) {
             throw new IllegalStateException("OpenAI API key is not configured.");
         }
 
         try {
-            HttpRequest httpRequest = HttpRequest.newBuilder(OPENAI_CHAT_COMPLETIONS_URI)
+            HttpRequest httpRequest = HttpRequest.newBuilder(resolveChatCompletionsUri())
                     .header("Authorization", "Bearer " + apiKey)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(buildOpenAiPayload(request)))
@@ -170,5 +182,24 @@ notes: %s
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private URI resolveChatCompletionsUri() {
+        if ("aws-service".equals(deploymentMode)) {
+            if (awsServiceUri == null) {
+                throw new IllegalStateException("app.llm.runtime.mode=aws-service requires app.llm.aws-service.chat-completions-url");
+            }
+            return awsServiceUri;
+        }
+        return managedApiUri;
+    }
+
+    private String normalize(String mode) {
+        String normalized = mode == null ? "managed-api" : mode.trim().toLowerCase();
+        if (!"managed-api".equals(normalized) && !"aws-service".equals(normalized)) {
+            log.warn("Unknown app.llm.runtime.mode='{}', fallback to managed-api", mode);
+            return "managed-api";
+        }
+        return normalized;
     }
 }
