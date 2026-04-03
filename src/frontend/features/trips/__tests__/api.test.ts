@@ -13,6 +13,9 @@ import { apiGet, apiPost } from "@/lib/apiClient";
 jest.mock("@/lib/apiClient", () => ({
   apiGet: jest.fn(),
   apiPost: jest.fn(),
+  get USE_MOCK() {
+    return process.env.NEXT_PUBLIC_USE_MOCK === "true";
+  },
 }));
 
 const mockedApiGet = jest.mocked(apiGet);
