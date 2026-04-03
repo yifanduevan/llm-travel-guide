@@ -372,11 +372,10 @@ export default function AddTripPage() {
       );
 
       if (trip.id) {
-        try {
-          await generateItinerary(trip.id);
-        } catch {
+        // Fire-and-forget: do not block navigation or spinner on itinerary generation.
+        void generateItinerary(trip.id).catch(() => {
           // Keep trip initialization non-blocking even if itinerary generation fails.
-        }
+        });
       }
 
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
