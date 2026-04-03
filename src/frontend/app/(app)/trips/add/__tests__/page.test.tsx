@@ -83,7 +83,7 @@ describe("AddTripPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /generate my guide/i }));
 
     expect(
-      await screen.findByText(/trip generation request is invalid/i),
+      await screen.findByText(/trip creation request is invalid/i),
     ).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
