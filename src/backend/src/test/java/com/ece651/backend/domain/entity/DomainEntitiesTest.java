@@ -45,6 +45,7 @@ class DomainEntitiesTest {
                 "Louvre",
                 "Visit museum",
                 time,
+                "9:00 AM",
                 ItineraryItemCategory.UNSPECIFIED,
                 "Paris",
                 "https://example.com",

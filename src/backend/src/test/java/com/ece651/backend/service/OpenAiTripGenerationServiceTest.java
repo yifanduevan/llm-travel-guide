@@ -25,9 +25,11 @@ class OpenAiTripGenerationServiceTest {
     void generatePlan_returnsFallbackWhenApiKeyIsBlank() {
         OpenAiTripGenerationService service = new OpenAiTripGenerationService(
                 new ObjectMapper(),
-                "   ",
+                new LlmApiKeyResolver("env", "   ", ""),
                 "gpt-test",
-                "http://localhost/unused");
+                "managed-api",
+                "http://localhost/unused",
+                "");
 
         TripGenerateRequest request = request(
             Budget.LUXURY,
@@ -56,9 +58,11 @@ class OpenAiTripGenerationServiceTest {
         try (LocalServer server = new LocalServer(200, responseJson, capturedRequest)) {
             OpenAiTripGenerationService service = new OpenAiTripGenerationService(
                     new ObjectMapper(),
-                    "test-key",
+                    new LlmApiKeyResolver("env", "test-key", ""),
                     "gpt-test",
-                    server.url());
+                    "managed-api",
+                    server.url(),
+                    "");
 
             TripGenerationResult result = service.generatePlan(request(Budget.MEDIUM, List.of("museum", " food ")));
 
@@ -97,9 +101,11 @@ class OpenAiTripGenerationServiceTest {
         try (LocalServer server = new LocalServer(200, responseJson, new AtomicReference<>(""))) {
             OpenAiTripGenerationService service = new OpenAiTripGenerationService(
                     new ObjectMapper(),
-                    "test-key",
+                    new LlmApiKeyResolver("env", "test-key", ""),
                     "gpt-test",
-                    server.url());
+                    "managed-api",
+                    server.url(),
+                    "");
 
             TripGenerationResult result = service.generatePlan(request(Budget.BUDGET, List.of()));
 
@@ -116,9 +122,11 @@ class OpenAiTripGenerationServiceTest {
         try (LocalServer server = new LocalServer(500, "{\"error\":\"boom\"}", new AtomicReference<>(""))) {
             OpenAiTripGenerationService service = new OpenAiTripGenerationService(
                     new ObjectMapper(),
-                    "test-key",
+                    new LlmApiKeyResolver("env", "test-key", ""),
                     "gpt-test",
-                    server.url());
+                    "managed-api",
+                    server.url(),
+                    "");
 
             TripGenerationResult result = service.generatePlan(request(Budget.BUDGET, List.of("hiking")));
 
