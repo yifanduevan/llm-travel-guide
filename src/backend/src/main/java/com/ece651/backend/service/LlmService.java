@@ -54,7 +54,7 @@ public class LlmService {
 
     public LlmItineraryResponse generateItinerary(LlmItineraryRequest request) {
         String apiKey = apiKeyResolver.resolveApiKey();
-        if (!hasApiKey()) {
+        if (!StringUtils.hasText(apiKey)) {
             throw new IllegalStateException("OpenAI API key is not configured.");
         }
 
