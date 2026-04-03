@@ -42,7 +42,6 @@ jobs:
       - name: Run backend tests with coverage
         working-directory: src/backend
         run: mvn -B verify
-        # run: ./mvnw -B test
       - name: Upload backend coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -79,9 +78,6 @@ jobs:
           name: frontend-coverage-report
           path: src/frontend/coverage
           if-no-files-found: warn
-      # - name: Lint
-      #   working-directory: src/frontend
-      #   run: npm run lint
       - name: Build
         working-directory: src/frontend
         run: npm run build
