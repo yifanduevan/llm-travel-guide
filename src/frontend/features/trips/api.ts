@@ -1,4 +1,4 @@
-import { apiGet, apiPost, USE_MOCK } from '../../lib/apiClient';
+import { apiDelete, apiGet, apiPost, USE_MOCK } from '../../lib/apiClient';
 import { TripDto, AccommodationDto, DiningReservationDto, TransportSegmentDto } from '../../lib/types';
 import { mockTrips, mockTrip, mockAccommodations, mockDiningReservations, mockTransportSegments, getMockItinerary } from './mock';
 import type { ItineraryDay, ItineraryItem } from './itineraryTypes';
