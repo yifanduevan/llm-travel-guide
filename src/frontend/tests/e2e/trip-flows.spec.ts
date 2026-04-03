@@ -243,6 +243,6 @@ test("shows an error when generation fails", async ({ page }) => {
   await page.getByRole("button", { name: "Generate my guide" }).click();
 
   await expect(
-    page.getByText(/backend trip generation failed/i),
+    page.getByText(/backend trip creation failed/i),
   ).toBeVisible();
 });
