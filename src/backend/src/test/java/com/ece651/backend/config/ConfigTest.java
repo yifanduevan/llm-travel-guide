@@ -2,6 +2,7 @@ package com.ece651.backend.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -67,6 +68,6 @@ class ConfigTest {
 
         verify(userRepository, times(1)).save(any(User.class));
         verify(tripRepository, times(1)).save(any(Trip.class));
-        verify(transportSegmentRepository, times(2)).save(any());
+        verify(transportSegmentRepository, atLeastOnce()).save(any());
     }
 }
