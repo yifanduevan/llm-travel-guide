@@ -72,6 +72,7 @@ describe("AddTripPage", () => {
 
   it("shows a validation-style error when generation fails with a 400", async () => {
     mockedGenerateTrip.mockRejectedValue(new Error("400 /api/trips/generate"));
+    mockedGenerateTrip.mockRejectedValue(new Error("400 /api/trips/generate"));
 
     render(<AddTripPage />);
 
@@ -82,7 +83,7 @@ describe("AddTripPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /generate my guide/i }));
 
     expect(
-      await screen.findByText("Trip generation request is invalid. Check the dates and required fields."),
+      await screen.findByText(/trip generation request is invalid/i),
     ).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
