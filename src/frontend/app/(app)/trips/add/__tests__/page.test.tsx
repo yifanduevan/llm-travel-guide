@@ -87,4 +87,5 @@ describe("AddTripPage", () => {
     ).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
+
 });

@@ -8,5 +8,12 @@ export PATH="$JAVA_HOME/bin:$PATH"
 SCRIPT_DIR="$(cd -- "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
 cd "$SCRIPT_DIR/../src/backend" || exit 1
 
+# Load local backend env vars (ignored by git), if present.
+if [[ -f ".env.local" ]]; then
+  set -a
+  source ".env.local"
+  set +a
+fi
+
 # Pass through all arguments
 exec mvn -Dmaven.repo.local=./.m2 "$@"

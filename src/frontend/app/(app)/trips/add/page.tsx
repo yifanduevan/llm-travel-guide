@@ -305,6 +305,7 @@ export default function AddTripPage() {
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    let createdTripId: string | null = null;
 
     timeoutRef.current = setTimeout(() => {
       handleCancel();
@@ -323,11 +324,10 @@ export default function AddTripPage() {
         controller.signal,
       );
 
+      createdTripId = trip.id ?? null;
       if (trip.id) {
-        // Fire-and-forget: do not block navigation or spinner on itinerary generation.
-        void generateItinerary(trip.id).catch(() => {
-          // Keep trip initialization non-blocking even if itinerary generation fails.
-        });
+        // Ensure first trip open reflects generated itinerary without requiring a second click.
+        await generateItinerary(trip.id);
       }
 
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -336,6 +336,12 @@ export default function AddTripPage() {
       router.push(trip.id ? `/trips/${trip.id}` : "/trips");
     } catch (err: unknown) {
       abortControllerRef.current = null;
+
+      if (createdTripId) {
+        // Trip was created, but post-create itinerary generation failed.
+        router.push(`/trips/${createdTripId}`);
+        return;
+      }
 
       if (err instanceof Error && (err.name === "AbortError" || err.message === "Aborted")) {
         setStatus("idle");

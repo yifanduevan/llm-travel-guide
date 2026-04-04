@@ -130,6 +130,17 @@ Backend/database variables (existing setup):
 | `DB_URL` | `jdbc:postgresql://127.0.0.1:5432/ece651` | Database connection URL |
 | `DB_USER` | `ece651` | Database username |
 | `DB_PASSWORD` | `password` | Database password |
+| `SPRING_PROFILES_ACTIVE` | _unset_ | Active profile (`staging` or `prod` for deployed environments) |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated exact frontend origin URLs allowed by backend CORS |
+
+Local backend env file (recommended for testing secrets):
+
+```bash
+cp src/backend/.env.local.example src/backend/.env.local
+# then set OPENAI_API_KEY in src/backend/.env.local
+```
+
+`scripts/run.sh` (backend/both) and `scripts/mvn-run` automatically load `src/backend/.env.local` when present.
 
 Backend LLM production configuration:
 
@@ -172,8 +183,26 @@ Additional backend LLM variables:
 	- `OPENAI_API_KEY` is allowed only for local development fallback.
 6. Deploy backend with environment variables above.
 7. Smoke test after deploy:
-	- Call backend trip generation endpoint.
-	- Verify non-empty generated result and no secret leakage in logs.
+	- Run `./scripts/smoke-api.sh https://<deployed-api-host>`.
+	- Verify `/actuator/health` and `/actuator/health/readiness` return `UP`.
+	- Verify `/api/trips` responds with `200` and a JSON array.
+	- Verify no secret leakage in logs.
+
+### Backend Deploy Checklist (Staging/Prod)
+
+1. Set profile:
+	- `SPRING_PROFILES_ACTIVE=staging` or `SPRING_PROFILES_ACTIVE=prod`.
+2. Set database env vars from your runtime/deployment secret store:
+	- `DB_URL` (RDS JDBC URL), `DB_USER`, `DB_PASSWORD`.
+3. Set strict CORS origins:
+	- `CORS_ALLOWED_ORIGINS=https://your-frontend.example.com` (or multiple exact origins, comma-separated).
+4. Validate health endpoints:
+	- `/actuator/health`
+	- `/actuator/health/readiness` (recommended for load balancer target health checks).
+5. Run smoke test:
+	- `./scripts/smoke-api.sh https://<deployed-api-host>`.
+6. Coordination gate:
+	- Align auth and trip API contract changes with Meng before merge/deploy.
 
 ## Development
 
@@ -231,4 +260,3 @@ refactor: extract trip validation logic
 ## License
 
 This project is for educational purposes as part of ECE 651 coursework at the University of Waterloo.
-

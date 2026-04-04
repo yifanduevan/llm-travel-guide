@@ -17,15 +17,21 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-  web:
-    mvc:
-      cors:
-        mappings:
-          "/api/**":
-            allowed-origins: "http://localhost:3000"
-            allowed-methods: "*"
-            allowed-headers: "*"
-            allow-credentials: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      group:
+        readiness:
+          include: readinessState,db
+        liveness:
+          include: livenessState
 
 logging:
   level:
@@ -33,6 +39,8 @@ logging:
     org.hibernate.SQL: debug
 
 app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   llm:
     runtime:
       # managed-api: use provider-managed API endpoints (e.g., api.openai.com)
@@ -54,3 +62,25 @@ app:
       # Required only when LLM_RUNTIME_MODE=aws-service
       chat-completions-url: ${AWS_LLM_CHAT_URL:}
       responses-endpoint: ${AWS_LLM_RESPONSES_URL:}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: staging
+  datasource:
+    # Staging should point to RDS or another managed Postgres instance.
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    # Production must use runtime-injected DB credentials (e.g., RDS).
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}

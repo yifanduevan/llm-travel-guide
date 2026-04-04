@@ -9,6 +9,16 @@ usage() {
   exit 1
 }
 
+load_backend_env() {
+  local env_file="$ROOT_DIR/src/backend/.env.local"
+  if [[ -f "$env_file" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$env_file"
+    set +a
+  fi
+}
+
 kill_port() {
   local port="$1"
   local pids
@@ -34,6 +44,7 @@ case "$1" in
   backend)
     export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home
     export PATH="$JAVA_HOME/bin:$PATH"
+    load_backend_env
     cd "$ROOT_DIR/src/backend"
     kill_port "${SERVER_PORT:-8080}"
     exec mvn -Dmaven.repo.local=./.m2 -Dspring-boot.run.fork=false spring-boot:run
@@ -47,6 +58,7 @@ case "$1" in
     (
       export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home
       export PATH="$JAVA_HOME/bin:$PATH"
+      load_backend_env
       cd "$ROOT_DIR/src/backend" || exit 1
       kill_port "${SERVER_PORT:-8080}"
       mvn -Dmaven.repo.local=./.m2 -Dspring-boot.run.fork=false spring-boot:run
