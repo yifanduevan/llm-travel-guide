@@ -20,7 +20,7 @@ async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, { method: 'GET' });
+  const res = await fetch(`${API_BASE_URL}${path}`, { method: 'GET', cache: 'no-store' });
   if (!res.ok) {
     throw new Error(`${res.status} ${path}`);
   }
