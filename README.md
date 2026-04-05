@@ -132,6 +132,8 @@ Backend/database variables (existing setup):
 | `DB_PASSWORD` | `password` | Database password |
 | `SPRING_PROFILES_ACTIVE` | _unset_ | Active profile (`staging` or `prod` for deployed environments) |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated exact frontend origin URLs allowed by backend CORS |
+| `DEMO_USER_EMAIL` | `demo@example.com` | Interim backend identity used until real auth is implemented |
+| `DEMO_USER_BACKFILL_TRIPS` | `true` | Reassigns existing trips to demo user at startup (temporary workaround) |
 
 Local backend env file (recommended for testing secrets):
 

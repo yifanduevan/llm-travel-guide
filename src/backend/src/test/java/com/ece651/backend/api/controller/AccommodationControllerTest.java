@@ -54,7 +54,7 @@ class AccommodationControllerTest {
 
     @Test
     void list_returnsNotFoundWhenCurrentUserMissing() {
-        when(userRepository.findAll()).thenReturn(List.of());
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.empty());
 
         var response = controller.list(tripId);
 
@@ -63,7 +63,7 @@ class AccommodationControllerTest {
 
     @Test
     void create_returnsOkWhenTripExists() {
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.of(trip));
 
         AccommodationRequest request = new AccommodationRequest(
@@ -91,7 +91,7 @@ class AccommodationControllerTest {
     @Test
     void update_returnsNotFoundWhenAccommodationMissing() {
         UUID accommodationId = UUID.randomUUID();
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.of(trip));
         when(accommodationRepository.findByIdAndTripId(accommodationId, tripId)).thenReturn(Optional.empty());
 
@@ -119,7 +119,7 @@ class AccommodationControllerTest {
         UUID accommodationId = UUID.randomUUID();
         Accommodation accommodation = new Accommodation();
         accommodation.setId(accommodationId);
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.of(trip));
         when(accommodationRepository.findByIdAndTripId(accommodationId, tripId)).thenReturn(Optional.of(accommodation));
 

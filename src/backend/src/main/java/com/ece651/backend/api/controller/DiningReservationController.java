@@ -26,13 +26,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/trips/{tripId}/dining-reservations")
 public class DiningReservationController {
+    private static final String DEMO_USER_EMAIL = "demo@example.com";
+
     private final DiningReservationRepository diningReservationRepository;
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
 
-    // TODO replace with real auth
+    // TODO replace with real auth.
+    // Interim workaround: pin all access to a deterministic demo user.
     private UUID getCurrentUserId() {
-        return userRepository.findAll().stream().findFirst().map(User::getId).orElse(null);
+        return userRepository.findByEmail(DEMO_USER_EMAIL).map(User::getId).orElse(null);
     }
 
     public DiningReservationController(

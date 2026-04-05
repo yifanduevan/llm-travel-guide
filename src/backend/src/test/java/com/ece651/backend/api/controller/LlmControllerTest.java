@@ -58,7 +58,7 @@ class LlmControllerTest {
 
     @Test
     void generateItinerary_returns401_whenNoUser() {
-        when(userRepository.findAll()).thenReturn(List.of());
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.empty());
 
         ResponseEntity<ItineraryResponseLlmDto> response =
                 controller.generateItinerary(UUID.randomUUID());
@@ -68,7 +68,7 @@ class LlmControllerTest {
 
     @Test
     void generateItinerary_returns404_whenTripNotFound() {
-        when(userRepository.findAll()).thenReturn(List.of(testUser));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(testUser));
         when(tripRepository.findByIdAndUserId(any(UUID.class), any(UUID.class)))
                 .thenReturn(Optional.empty());
 
@@ -80,7 +80,7 @@ class LlmControllerTest {
 
     @Test
     void generateItinerary_returns500_whenLlmReturnsNull() {
-        when(userRepository.findAll()).thenReturn(List.of(testUser));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(testUser));
         when(tripRepository.findByIdAndUserId(any(UUID.class), any(UUID.class)))
                 .thenReturn(Optional.of(testTrip));
         when(llmService.generateItinerary(any(LlmItineraryRequest.class))).thenReturn(null);
@@ -93,7 +93,7 @@ class LlmControllerTest {
 
     @Test
     void generateItinerary_returns200_withValidItinerary() {
-        when(userRepository.findAll()).thenReturn(List.of(testUser));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(testUser));
         when(tripRepository.findByIdAndUserId(any(UUID.class), any(UUID.class)))
                 .thenReturn(Optional.of(testTrip));
 
@@ -121,7 +121,7 @@ class LlmControllerTest {
 
     @Test
     void getItinerary_returns200_whenTripExists() {
-        when(userRepository.findAll()).thenReturn(List.of(testUser));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(testUser));
         when(tripRepository.findByIdAndUserId(any(UUID.class), any(UUID.class)))
                 .thenReturn(Optional.of(testTrip));
         ItineraryResponseLlmDto persisted = new ItineraryResponseLlmDto(List.of());

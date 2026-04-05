@@ -27,14 +27,13 @@ public class LlmController {
 
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
+
+    private static final String DEMO_USER_EMAIL = "demo@example.com";
     private final LlmService llmService;
     private final LlmItineraryPersistenceService itineraryPersistenceService;
 
     private UUID getCurrentUserId() {
-        return userRepository.findAll().stream()
-                .findFirst()
-                .map(User::getId)
-                .orElse(null);
+        return userRepository.findByEmail(DEMO_USER_EMAIL).map(User::getId).orElse(null);
     }
 
     public LlmController(

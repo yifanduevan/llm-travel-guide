@@ -13,8 +13,11 @@ import com.ece651.backend.repository.TripRepository;
 import com.ece651.backend.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,13 +28,33 @@ public class DataSeeder {
     CommandLineRunner seedData(
             UserRepository userRepository,
             TripRepository tripRepository,
-            TransportSegmentRepository transportSegmentRepository) {
+            TransportSegmentRepository transportSegmentRepository,
+            @Value("${app.auth.demo.email:demo@example.com}") String demoUserEmail,
+            @Value("${app.auth.demo.backfill-trip-ownership:true}") boolean backfillTripOwnership) {
         return args -> {
             OffsetDateTime now = OffsetDateTime.now();
             User user = userRepository
-                    .findByEmail("demo@example.com")
+                    .findByEmail(demoUserEmail)
                     .orElseGet(() -> userRepository.save(
-                            new User(UUID.randomUUID(), "demo@example.com", "hashed-password", "Demo User", now)));
+                            new User(UUID.randomUUID(), demoUserEmail, "hashed-password", "Demo User", now)));
+
+            if (backfillTripOwnership) {
+                List<Trip> existingTrips = tripRepository.findAll();
+                if (existingTrips == null) {
+                    existingTrips = List.of();
+                }
+
+                List<Trip> needsReassign = new ArrayList<>();
+                for (Trip existingTrip : existingTrips) {
+                    if (existingTrip.getUser() == null || !user.getId().equals(existingTrip.getUser().getId())) {
+                        existingTrip.setUser(user);
+                        needsReassign.add(existingTrip);
+                    }
+                }
+                if (!needsReassign.isEmpty()) {
+                    tripRepository.saveAll(needsReassign);
+                }
+            }
 
             if (tripRepository.count() > 0) {
                 return;

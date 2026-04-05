@@ -49,7 +49,8 @@ class ConfigTest {
         when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(existingUser));
         when(tripRepository.count()).thenReturn(1L);
 
-        CommandLineRunner runner = seeder.seedData(userRepository, tripRepository, transportSegmentRepository);
+        CommandLineRunner runner =
+                seeder.seedData(userRepository, tripRepository, transportSegmentRepository, "demo@example.com", true);
         runner.run();
 
         verify(tripRepository, never()).save(any(Trip.class));
@@ -63,7 +64,8 @@ class ConfigTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(tripRepository.count()).thenReturn(0L);
 
-        CommandLineRunner runner = seeder.seedData(userRepository, tripRepository, transportSegmentRepository);
+        CommandLineRunner runner =
+                seeder.seedData(userRepository, tripRepository, transportSegmentRepository, "demo@example.com", true);
         runner.run();
 
         verify(userRepository, times(1)).save(any(User.class));

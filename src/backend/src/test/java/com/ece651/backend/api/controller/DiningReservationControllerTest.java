@@ -55,7 +55,7 @@ class DiningReservationControllerTest {
 
     @Test
     void list_returnsNotFoundWhenNoUser() {
-        when(userRepository.findAll()).thenReturn(List.of());
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.empty());
 
         var response = controller.list(tripId);
 
@@ -64,7 +64,7 @@ class DiningReservationControllerTest {
 
     @Test
     void create_returnsOkWhenTripExists() {
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.of(trip));
 
         DiningReservationRequest request = new DiningReservationRequest(
@@ -93,7 +93,7 @@ class DiningReservationControllerTest {
         DiningReservation reservation = new DiningReservation();
         reservation.setId(reservationId);
 
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.of(trip));
         when(diningReservationRepository.findByIdAndTripId(reservationId, tripId)).thenReturn(Optional.of(reservation));
 

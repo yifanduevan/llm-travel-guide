@@ -49,7 +49,7 @@ class ActivityControllerTest {
 
     @Test
     void list_returnsNotFoundWhenTripNotAccessible() {
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.empty());
 
         var response = controller.list(tripId);
@@ -63,7 +63,7 @@ class ActivityControllerTest {
         activity.setId(UUID.randomUUID());
         activity.setTitle("Walk tour");
 
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.of(trip));
         when(activityRepository.findByTripId(tripId)).thenReturn(List.of(activity));
 

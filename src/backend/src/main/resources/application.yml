@@ -39,6 +39,11 @@ logging:
     org.hibernate.SQL: debug
 
 app:
+  auth:
+    demo:
+      email: ${DEMO_USER_EMAIL:demo@example.com}
+      # Interim workaround: reassign existing trips to demo user at startup.
+      backfill-trip-ownership: ${DEMO_USER_BACKFILL_TRIPS:true}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   llm:

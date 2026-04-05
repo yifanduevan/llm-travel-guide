@@ -66,7 +66,7 @@ class TripControllerTest {
     @Test
     void listTrips_returnsMappedTripsForCurrentUser() {
         Trip trip = trip("Kyoto");
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByUserId(userId)).thenReturn(List.of(trip));
 
         var result = controller.listTrips();
@@ -79,7 +79,7 @@ class TripControllerTest {
     @Test
     void getTrip_returnsNotFoundWhenTripDoesNotExist() {
         UUID tripId = UUID.randomUUID();
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, userId)).thenReturn(Optional.empty());
 
         ResponseEntity<?> response = controller.getTrip(tripId);
@@ -89,7 +89,7 @@ class TripControllerTest {
 
     @Test
     void createTrip_returnsBadRequestWhenNoCurrentUser() {
-        when(userRepository.findAll()).thenReturn(List.of());
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.empty());
 
         TripRequest request = new TripRequest(
                 "Rome",
@@ -107,7 +107,7 @@ class TripControllerTest {
 
     @Test
     void createTrip_savesTripAndReturnsDto() {
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         TripRequest request = new TripRequest(
@@ -128,7 +128,7 @@ class TripControllerTest {
 
     @Test
     void generateTrip_returnsBadRequestWhenNoCurrentUser() {
-        when(userRepository.findAll()).thenReturn(List.of());
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.empty());
 
         TripGenerateRequest request = new TripGenerateRequest(
                 "Seoul",
@@ -145,7 +145,7 @@ class TripControllerTest {
 
     @Test
     void generateTrip_persistsTripAndSuggestions() {
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(tripGenerationService.generatePlan(any(TripGenerateRequest.class))).thenReturn(
                 new TripGenerationResult(
@@ -187,7 +187,7 @@ class TripControllerTest {
     @Test
     void updateTrip_returnsNotFoundWhenTripMissing() {
         UUID tripId = UUID.randomUUID();
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, userId)).thenReturn(Optional.empty());
 
         TripRequest request = new TripRequest(
@@ -208,7 +208,7 @@ class TripControllerTest {
     void updateTrip_updatesExistingTrip() {
         UUID tripId = UUID.randomUUID();
         Trip existing = trip("Old Title");
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, userId)).thenReturn(Optional.of(existing));
 
         TripRequest request = new TripRequest(
@@ -230,7 +230,7 @@ class TripControllerTest {
     @Test
     void deleteTrip_returnsNotFoundWhenTripMissing() {
         UUID tripId = UUID.randomUUID();
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, userId)).thenReturn(Optional.empty());
 
         ResponseEntity<Void> response = controller.deleteTrip(tripId);
@@ -242,7 +242,7 @@ class TripControllerTest {
     void deleteTrip_deletesTripAndReturnsNoContent() {
         UUID tripId = UUID.randomUUID();
         Trip existing = trip("Delete me");
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, userId)).thenReturn(Optional.of(existing));
 
         ResponseEntity<Void> response = controller.deleteTrip(tripId);

@@ -29,6 +29,8 @@ public class AccommodationController {
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
 
+    private static final String DEMO_USER_EMAIL = "demo@example.com";
+
     public AccommodationController(
             AccommodationRepository accommodationRepository,
             TripRepository tripRepository,
@@ -38,9 +40,10 @@ public class AccommodationController {
         this.userRepository = userRepository;
     }
 
-    // TODO: replace stub with real auth
+    // TODO replace with real auth.
+    // Interim workaround: pin all access to a deterministic demo user.
     private UUID getCurrentUserId() {
-        return userRepository.findAll().stream().findFirst().map(User::getId).orElse(null);
+        return userRepository.findByEmail(DEMO_USER_EMAIL).map(User::getId).orElse(null);
     }
 
     @GetMapping

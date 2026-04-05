@@ -54,7 +54,7 @@ class TransportSegmentControllerTest {
 
     @Test
     void create_returnsNotFoundWhenTripMissingForCurrentUser() {
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.empty());
 
         TransportSegmentRequest request = new TransportSegmentRequest(
@@ -82,7 +82,7 @@ class TransportSegmentControllerTest {
 
     @Test
     void create_returnsOkWhenTripExists() {
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.of(trip));
 
         TransportSegmentRequest request = new TransportSegmentRequest(
@@ -117,7 +117,7 @@ class TransportSegmentControllerTest {
         TransportSegment segment = new TransportSegment();
         segment.setId(segmentId);
 
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByEmail("demo@example.com")).thenReturn(Optional.of(user));
         when(tripRepository.findByIdAndUserId(tripId, user.getId())).thenReturn(Optional.of(trip));
         when(transportSegmentRepository.findByIdAndTripId(segmentId, tripId)).thenReturn(Optional.of(segment));
 
