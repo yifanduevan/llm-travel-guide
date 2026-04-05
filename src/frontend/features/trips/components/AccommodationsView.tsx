@@ -8,6 +8,11 @@ import type { AccommodationDto } from "@/lib/types";
 import OverlayModal from "./OverlayModal";
 import ConfirmOverlay from "./ConfirmOverlay";
 
+function formatLocalDateStr(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toDateString();
+}
+
 type TripInfo = {
   titleOrDestination?: string;
   startDate?: string | null;
@@ -137,6 +142,7 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
   const [stays, setStays] = useState<Accommodation[]>(initial);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectedStayId, setSelectedStayId] = useState<string | null>(null);
 
   const {
     totalNights,
@@ -148,9 +154,12 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
     hasBudget,
   } = useMemo(() => {
     const msPerDay = 24 * 60 * 60 * 1000;
-    let nights = 0;
+    let maxNights = 0;
     let hotels = 0;
-    const costByCurrency = new Map<string, { total: number; count: number }>();
+
+    const selected = selectedStayId
+      ? stays.find((s) => s.id === selectedStayId)
+      : stays[0];
 
     stays.forEach((stay) => {
       if (stay.checkIn && stay.checkOut) {
@@ -160,36 +169,22 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
           const diff = Math.round(
             (checkOutDate.getTime() - checkInDate.getTime()) / msPerDay,
           );
-          nights += Math.max(0, diff);
+          maxNights = Math.max(maxNights, Math.max(0, diff));
         }
       }
-
       hotels += 1;
-
-      const rateValue = parseRateValue(stay.rate);
-      if (rateValue !== null) {
-        const currencyKey = normalizeCurrency(stay.currency);
-        const current = costByCurrency.get(currencyKey) ?? {
-          total: 0,
-          count: 0,
-        };
-        current.total += rateValue;
-        current.count += 1;
-        costByCurrency.set(currencyKey, current);
-      }
     });
 
-    let totalCostValue: number | null = 0;
+    let totalCostValue: number | null = null;
     let currencyValue: string | null = null;
-    let mixedCurrencies = false;
+    const mixedCurrencies = false;
 
-    if (costByCurrency.size === 1) {
-      const [onlyCurrency, payload] = Array.from(costByCurrency.entries())[0];
-      totalCostValue = payload.total;
-      currencyValue = onlyCurrency;
-    } else if (costByCurrency.size > 1) {
-      totalCostValue = null;
-      mixedCurrencies = true;
+    if (selected) {
+      const rateValue = parseRateValue(selected.rate);
+      if (rateValue !== null && maxNights > 0) {
+        totalCostValue = rateValue * maxNights;
+        currencyValue = normalizeCurrency(selected.currency);
+      }
     }
 
     const budgetValue = getBudgetValue(trip);
@@ -200,7 +195,7 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
         : 0;
 
     return {
-      totalNights: nights,
+      totalNights: maxNights,
       totalHotels: hotels,
       totalCost: totalCostValue,
       currency: currencyValue,
@@ -208,7 +203,7 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
       progressPct: pct,
       hasBudget: hasBudgetValue,
     };
-  }, [stays, trip]);
+  }, [stays, trip, selectedStayId]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formState, setFormState] = useState<CreateAccommodationRequest>(defaultForm);
   const [saving, setSaving] = useState(false);
@@ -448,9 +443,10 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
             {stays.map((stay) => (
               <div
                 key={stay.id ?? stay.name}
-                className={`group flex flex-col overflow-hidden rounded-2xl border-white bg-white shadow-sm transition duration-300 hover:shadow-xl md:flex-row ${
+                onClick={() => setSelectedStayId(stay.id)}
+                className={`group cursor-pointer flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:shadow-xl md:flex-row ${
                   stay.status === "PENDING" ? "opacity-80 grayscale-[0.3]" : ""
-                }`}
+                } ${selectedStayId === stay.id ? "ring-2 ring-blue-500" : "border-white"}`}
               >
                 <div className="relative h-64 w-full shrink-0 overflow-hidden md:h-auto md:w-72">
                   <div
@@ -513,7 +509,7 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
                           <span className="material-symbols-outlined text-lg text-slate-900">
                             calendar_today
                           </span>
-                          {stay.checkIn ? new Date(stay.checkIn).toDateString() : "TBD"}
+                          {stay.checkIn ? formatLocalDateStr(stay.checkIn) : "TBD"}
                         </p>
                       </div>
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -524,7 +520,7 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
                           <span className="material-symbols-outlined text-lg text-slate-900">
                             event_busy
                           </span>
-                          {stay.checkOut ? new Date(stay.checkOut).toDateString() : "TBD"}
+                          {stay.checkOut ? formatLocalDateStr(stay.checkOut) : "TBD"}
                         </p>
                       </div>
                     </div>
@@ -609,9 +605,10 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
               return (
                 <div
                   key={stay.id ?? stay.name}
-                  className={`flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition duration-300 md:flex-row md:items-center md:justify-between ${
+                  onClick={() => setSelectedStayId(stay.id)}
+                  className={`cursor-pointer flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm transition duration-300 md:flex-row md:items-center md:justify-between ${
                     stay.status === "PENDING" ? "opacity-80" : ""
-                  }`}
+                  } ${selectedStayId === stay.id ? "ring-2 ring-blue-500 border-blue-300" : "border-slate-200"}`}
                 >
                   <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center">
                     <div className="h-20 w-20 overflow-hidden rounded-xl bg-slate-100 md:h-24 md:w-24">
@@ -715,9 +712,12 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
 
             <div className="space-y-3 px-4 pb-4">
               {(() => {
-                const first = stays.find(
-                  (s) => (s.address ?? "").trim().length > 0,
-                ) ?? stays[0];
+                const selected = selectedStayId
+                  ? stays.find((s) => s.id === selectedStayId)
+                  : null;
+                const first = selected
+                  ?? stays.find((s) => (s.address ?? "").trim().length > 0)
+                  ?? stays[0];
                 const query = first
                   ? [first.name, first.address, trip?.titleOrDestination]
                       .filter(Boolean)
@@ -762,6 +762,23 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
                     >
                       Open in Google Maps
                     </a>
+                    {stays.length > 1 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {stays.map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => setSelectedStayId(s.id)}
+                            className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${
+                              s.id === (selectedStayId ?? first?.id)
+                                ? "bg-blue-600 text-white"
+                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            }`}
+                          >
+                            {s.name || "Unnamed"}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </>
                 );
               })()}
@@ -793,7 +810,7 @@ export default function AccommodationsView({ trip, tripId, accommodations, edita
                     apartment
                   </span>
                   <span className="text-sm font-medium text-slate-800">
-                    Stay types
+                    Options
                   </span>
                 </div>
                 <span className="font-bold text-slate-900">
@@ -1322,7 +1339,8 @@ const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
 
 function parseTripDate(dateStr: string) {
   if (dateOnlyPattern.test(dateStr)) {
-    return new Date(`${dateStr}T00:00:00Z`);
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
   }
 
   const parsed = new Date(dateStr);

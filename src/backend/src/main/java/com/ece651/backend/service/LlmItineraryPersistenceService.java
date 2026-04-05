@@ -63,12 +63,12 @@ public class LlmItineraryPersistenceService {
     public void persistGeneratedItinerary(Trip trip, LlmItineraryResponse response) {
         itineraryDayRepository.deleteByTripId(trip.getId());
 
-        LocalDate fallbackStartDate = trip.getStartDate() != null ? trip.getStartDate() : LocalDate.now();
+        LocalDate tripStart = trip.getStartDate() != null ? trip.getStartDate() : LocalDate.now();
         List<LlmItineraryResponse.Day> days = response == null ? List.of() : response.days();
 
         for (int dayIndex = 0; dayIndex < days.size(); dayIndex++) {
             LlmItineraryResponse.Day generatedDay = days.get(dayIndex);
-            LocalDate dayDate = parseDate(generatedDay.date(), fallbackStartDate.plusDays(dayIndex));
+            LocalDate dayDate = tripStart.plusDays(dayIndex);
 
             ItineraryDay persistedDay = new ItineraryDay();
             persistedDay.setId(UUID.randomUUID());

@@ -26,16 +26,19 @@ public class TripGenerationPersistenceService {
     private final DiningReservationRepository diningReservationRepository;
     private final AccommodationRepository accommodationRepository;
     private final ActivityRepository activityRepository;
+    private final GooglePlacesPhotoService placesPhotoService;
 
     public TripGenerationPersistenceService(
             TransportSegmentRepository transportSegmentRepository,
             DiningReservationRepository diningReservationRepository,
             AccommodationRepository accommodationRepository,
-            ActivityRepository activityRepository) {
+            ActivityRepository activityRepository,
+            GooglePlacesPhotoService placesPhotoService) {
         this.transportSegmentRepository = transportSegmentRepository;
         this.diningReservationRepository = diningReservationRepository;
         this.accommodationRepository = accommodationRepository;
         this.activityRepository = activityRepository;
+        this.placesPhotoService = placesPhotoService;
     }
 
     public void persistSuggestions(Trip trip, TripGenerateRequest request, TripGenerationResult plan) {
@@ -65,8 +68,11 @@ public class TripGenerationPersistenceService {
             dining.setName(suggestion.name());
             dining.setCuisine(suggestion.cuisine());
             dining.setPriceTier(suggestion.priceTier());
+            dining.setAddress(suggestion.address());
             dining.setStatus(DiningStatus.PENDING);
             dining.setNotes(suggestion.notes());
+            dining.setImageUrl(
+                    placesPhotoService.fetchRestaurantPhotoUrl(suggestion.name(), request.titleOrDestination()));
             dining.setPartySize(defaultPartySize(request));
             diningReservations.add(dining);
         }
@@ -85,6 +91,10 @@ public class TripGenerationPersistenceService {
             accommodation.setCheckIn(request.startDate());
             accommodation.setCheckOut(request.endDate());
             accommodation.setStatus(AccommodationStatus.PENDING);
+            accommodation.setRate(suggestion.rate());
+            accommodation.setCurrency(suggestion.currency());
+            accommodation.setImageUrl(
+                    placesPhotoService.fetchHotelPhotoUrl(suggestion.name(), request.titleOrDestination()));
             accommodation.setNotes(suggestion.notes());
             accommodations.add(accommodation);
         }

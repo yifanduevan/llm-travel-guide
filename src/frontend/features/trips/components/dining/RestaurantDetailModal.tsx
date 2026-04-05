@@ -147,6 +147,17 @@ export function RestaurantDetailModal({
                     Map unavailable
                   </div>
                 )}
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    [restaurant.name, restaurant.address].filter(Boolean).join(", ")
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  <span className="material-symbols-outlined text-sm">open_in_new</span>
+                  Open in Google Maps
+                </a>
               </div>
             )}
 

@@ -93,8 +93,10 @@ public class LlmService {
                 .put(
                         "content",
                         """
-Return a JSON object with this shape:
-{"days":[{"date":"YYYY-MM-DD","items":[{"title":"...","time":"...","description":"...","locationText":"..."}]}]}
+You are a knowledgeable travel planner. Return a JSON object with this exact shape:
+{"days":[{"date":"YYYY-MM-DD","items":[{"title":"...","time":"HH:MM AM/PM","description":"...","locationText":"..."}]}]}
+Each day should have 3-5 well-timed activities with specific times, vivid descriptions, and real place names.
+Include a mix of sightseeing, dining, and cultural experiences appropriate for the destination and budget.
 Do not include markdown or extra keys.
 """);
         messages.addObject().put("role", "user").put("content", buildPrompt(request));
@@ -104,21 +106,33 @@ Do not include markdown or extra keys.
 
     private String buildPrompt(LlmItineraryRequest request) {
         LlmItineraryRequest.TripPayload trip = request.trip();
+
+        String startDate = safe(trip.startDate());
+        String endDate = safe(trip.endDate());
+        String dateList = startDate + " to " + endDate;
+        try {
+            java.time.LocalDate s = java.time.LocalDate.parse(startDate);
+            java.time.LocalDate e = java.time.LocalDate.parse(endDate);
+            List<String> dates = new ArrayList<>();
+            for (java.time.LocalDate d = s; !d.isAfter(e); d = d.plusDays(1)) {
+                dates.add(d.toString());
+            }
+            dateList = String.join(", ", dates);
+        } catch (Exception ignored) {}
+
         return """
-Create a practical itinerary for this trip:
-tripId: %s
+Create a practical day-by-day itinerary for this trip.
+IMPORTANT: You MUST generate a "days" entry for each of these exact dates: [%s].
+Use these exact YYYY-MM-DD strings for each day's "date" field. Do NOT skip or add any dates.
+
 destination: %s
-startDate: %s
-endDate: %s
 travelers: %s
 budget: %s
 notes: %s
 """
                 .formatted(
-                        request.tripId(),
+                        dateList,
                         safe(trip.titleOrDestination()),
-                        safe(trip.startDate()),
-                        safe(trip.endDate()),
                         safe(trip.travelers()),
                         safe(trip.budget()),
                         safe(trip.notes()));

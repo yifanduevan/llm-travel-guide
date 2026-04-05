@@ -149,6 +149,7 @@ public class OpenAiTripGenerationService implements TripGenerationService {
                         textOr(item, "name", "Recommended dining spot"),
                         blankToNull(textOr(item, "cuisine", "")),
                         parsePriceTier(textOr(item, "priceTier", "TIER_2")),
+                        blankToNull(textOr(item, "address", "")),
                         blankToNull(textOr(item, "notes", ""))))
                 .toList();
     }
@@ -163,7 +164,10 @@ public class OpenAiTripGenerationService implements TripGenerationService {
                         textOr(item, "name", "Suggested stay"),
                         blankToNull(textOr(item, "address", "")),
                         blankToNull(textOr(item, "roomType", "")),
-                        blankToNull(textOr(item, "notes", ""))))
+                        blankToNull(textOr(item, "notes", "")),
+                        item.has("ratePerNight") && item.get("ratePerNight").isNumber()
+                                ? item.get("ratePerNight").decimalValue() : null,
+                        blankToNull(textOr(item, "currency", ""))))
                 .toList();
     }
 
@@ -206,8 +210,8 @@ public class OpenAiTripGenerationService implements TripGenerationService {
                 + "{\n"
                 + "  \"notes\": string,\n"
                 + "  \"transportSegments\": [{\"type\": \"FLIGHT|TRAIN|CAR|BUS|OTHER\", \"title\": string, \"startLocation\": string, \"endLocation\": string, \"durationText\": string}],\n"
-                + "  \"diningReservations\": [{\"name\": string, \"cuisine\": string, \"priceTier\": \"TIER_1|TIER_2|TIER_3\", \"notes\": string}],\n"
-                + "  \"accommodations\": [{\"name\": string, \"address\": string, \"roomType\": string, \"notes\": string}],\n"
+                + "  \"diningReservations\": [{\"name\": string, \"cuisine\": string, \"priceTier\": \"TIER_1|TIER_2|TIER_3\", \"address\": string, \"notes\": string}],\n"
+                + "  \"accommodations\": [{\"name\": string, \"address\": string, \"roomType\": string, \"notes\": string, \"ratePerNight\": number, \"currency\": string}],\n"
                 + "  \"activities\": [{\"title\": string, \"description\": string, \"durationText\": string, \"ticketType\": string, \"language\": string}]\n"
                 + "}\n"
                 + "Use 1-2 transport segments, 2-4 dining suggestions, 1-2 accommodations, and 3-6 activities.";
@@ -251,15 +255,17 @@ public class OpenAiTripGenerationService implements TripGenerationService {
                         "Daily urban travel"));
 
         List<TripGenerationResult.DiningSuggestion> dining = List.of(
-                new TripGenerationResult.DiningSuggestion("Chef's Table", "Local", tier, "Reserve for first evening"),
-                new TripGenerationResult.DiningSuggestion("Neighborhood Bistro", "Regional", tier, "Good mid-trip option"));
+                new TripGenerationResult.DiningSuggestion("Chef's Table", "Local", tier, "City Center", "Reserve for first evening"),
+                new TripGenerationResult.DiningSuggestion("Neighborhood Bistro", "Regional", tier, "Downtown", "Good mid-trip option"));
 
         List<TripGenerationResult.AccommodationSuggestion> stays = List.of(
                 new TripGenerationResult.AccommodationSuggestion(
                         destination + " Central Hotel",
                         "City Center",
                         "Standard Room",
-                        "Walkable to key attractions"));
+                        "Walkable to key attractions",
+                        java.math.BigDecimal.valueOf(120),
+                        "USD"));
 
         List<TripGenerationResult.ActivitySuggestion> activities = List.of(
                 new TripGenerationResult.ActivitySuggestion(

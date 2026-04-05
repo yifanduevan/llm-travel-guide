@@ -47,15 +47,23 @@ class TripGenerationPersistenceServiceTest {
     @Mock
     private ActivityRepository activityRepository;
 
+    @Mock
+    private GooglePlacesPhotoService placesPhotoService;
+
     private TripGenerationPersistenceService service;
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(placesPhotoService.fetchHotelPhotoUrl(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn("https://example.com/hotel-photo.jpg");
         service = new TripGenerationPersistenceService(
                 transportSegmentRepository,
                 diningReservationRepository,
                 accommodationRepository,
-                activityRepository);
+                activityRepository,
+                placesPhotoService);
     }
 
     @Test
@@ -83,12 +91,15 @@ class TripGenerationPersistenceServiceTest {
                         "Sushi Place",
                         "Japanese",
                         PriceTier.TIER_2,
+                        "Chiyoda, Tokyo",
                         "Book in advance")),
                 List.of(new TripGenerationResult.AccommodationSuggestion(
                         "Tokyo Central Hotel",
                         "Chiyoda",
                         "Family Suite",
-                        "Near station")),
+                        "Near station",
+                        java.math.BigDecimal.valueOf(150),
+                        "USD")),
                 List.of(new TripGenerationResult.ActivitySuggestion(
                         "Skytree Visit",
                         "Observation deck",

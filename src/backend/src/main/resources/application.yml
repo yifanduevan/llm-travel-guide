@@ -67,6 +67,9 @@ app:
       # Required only when LLM_RUNTIME_MODE=aws-service
       chat-completions-url: ${AWS_LLM_CHAT_URL:}
       responses-endpoint: ${AWS_LLM_RESPONSES_URL:}
+  google:
+    places:
+      api-key: ${GOOGLE_PLACES_API_KEY:}
 
 ---
 spring:

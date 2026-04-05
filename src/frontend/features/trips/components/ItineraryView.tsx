@@ -559,11 +559,13 @@ export default function ItineraryView({
   };
 
   const header = "Your Journey";
+  const formatLocalDate = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-US");
+  };
   const dates =
     trip?.startDate && trip?.endDate
-      ? `${new Date(trip.startDate).toLocaleDateString("en-US")} - ${new Date(
-            trip.endDate,
-          ).toLocaleDateString("en-US")}`
+      ? `${formatLocalDate(trip.startDate)} - ${formatLocalDate(trip.endDate)}`
       : "Dates TBD";
 
   return (
