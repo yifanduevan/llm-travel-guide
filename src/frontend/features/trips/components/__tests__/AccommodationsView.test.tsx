@@ -97,7 +97,7 @@ describe("AccommodationsView", () => {
     fireEvent.click(screen.getByRole("button", { name: /save stay/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("New Stay")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "New Stay" })).toBeInTheDocument();
     });
 
     expect(globalThis.fetch).toHaveBeenCalled();
