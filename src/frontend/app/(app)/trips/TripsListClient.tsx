@@ -16,10 +16,15 @@ type TripsListClientProps = {
   initialTrips: TripListItem[];
 };
 
+function parseLocalDate(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 function formatRange(startDate: string | null, endDate: string | null) {
   if (!startDate || !endDate) return "Dates TBD";
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const start = parseLocalDate(startDate);
+  const end = parseLocalDate(endDate);
   const startFmt = start.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
