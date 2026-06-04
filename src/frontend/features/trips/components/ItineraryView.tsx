@@ -65,20 +65,7 @@ function getDayNumberFromLabel(label: string, fallback: number): number {
   const numeric = Number(match[1]);
   return Number.isFinite(numeric) ? numeric : fallback;
 }
-export default function ItineraryView({
-  editable = false,
-  trip,
-  tripId,
-}: ItineraryViewProps) {
-  const [days, setDays] = useState<ItineraryTimelineEntry[]>([]);
 
-function getDayNumberFromLabel(label: string, fallback: number): number {
-  const match = label.match(/Day\s+(\d+)/i);
-  if (!match) return fallback;
-
-  const numeric = Number(match[1]);
-  return Number.isFinite(numeric) ? numeric : fallback;
-}
 export default function ItineraryView({
   editable = false,
   trip,
@@ -183,7 +170,6 @@ export default function ItineraryView({
 
       if (isActive) {
         setErrorMessage(null);
-        setErrorMessage(null);
         setLoading(true);
       }
 
@@ -191,11 +177,8 @@ export default function ItineraryView({
         const data = await getItinerary(resolvedTripId);
         if (!isActive) return;
         setDays(hydrateTimelineDays(Array.isArray(data) ? data : []));
-        setDays(hydrateTimelineDays(Array.isArray(data) ? data : []));
       } catch {
         if (!isActive) return;
-        setStatus("error");
-        setErrorMessage("Unable to load itinerary. Please try again.");
         setStatus("error");
         setErrorMessage("Unable to load itinerary. Please try again.");
         setDays([]);
@@ -574,7 +557,6 @@ export default function ItineraryView({
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-semibold text-slate-900">{header}</h2>
-            <h2 className="text-3xl font-semibold text-slate-900">{header}</h2>
             <p className="mt-1 text-sm text-slate-600">{dates}</p>
           </div>
           {!editable && (
@@ -773,12 +755,7 @@ export default function ItineraryView({
             >
               <span className="material-symbols-outlined">add</span>
               Add new day
-              Add new day
             </button>
-          )}
-
-          <div className="relative">
-            <div className="absolute -left-[34px] top-0 flex flex-col items-center" />
           )}
 
           <div className="relative">
@@ -786,55 +763,6 @@ export default function ItineraryView({
           </div>
         </div>
       </div>
-
-      <PackingListPanel />
-
-      <ConfirmOverlay
-        open={!!confirmItemDeleteTarget}
-        title="Delete item"
-        message={
-          confirmItemDeleteTarget
-            ? `Delete "${confirmItemDeleteTarget.title}" from this trip? This cannot be undone.`
-            : ""
-        }
-        confirmLabel="Delete"
-        cancelLabel="Keep"
-        onCancel={() => setConfirmItemDeleteTarget(null)}
-        onConfirm={handleConfirmDeleteItem}
-      />
-
-      <ConfirmOverlay
-        open={!!confirmDayDeleteTarget}
-        title="Delete this day?"
-        message={
-          confirmDayDeleteTarget
-            ? `Delete "${confirmDayDeleteTarget.dayLabel}" and all its activities? This cannot be undone.`
-            : ""
-        }
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        onCancel={() => setConfirmDayDeleteTarget(null)}
-        onConfirm={handleConfirmDeleteDay}
-      />
-
-      <EditItineraryItemModal
-        open={!!editingItemTarget}
-        form={editingItemForm}
-        onFormChange={(nextForm) => setEditingItemForm(nextForm)}
-        onClose={closeEditItemModal}
-        onSave={handleSaveEditedItem}
-      />
-
-      <EditItineraryItemModal
-        open={addActivityTargetDayIndex !== null}
-        form={addActivityForm}
-        onFormChange={(nextForm) => setAddActivityForm(nextForm)}
-        onClose={closeAddActivityModal}
-        onSave={handleSaveAddedActivity}
-        title="Add activity"
-        description="Add a new activity to this itinerary day."
-        saveLabel="Add activity"
-      />
 
       <PackingListPanel />
 

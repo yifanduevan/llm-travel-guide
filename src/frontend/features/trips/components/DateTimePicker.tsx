@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { createPortal } from "react-dom";
 
 type DateTimePickerProps = {
   value: string;
@@ -23,44 +22,10 @@ const PICKER_MIN_WIDTH = 320;
 const PICKER_MAX_WIDTH = 360;
 const PICKER_FALLBACK_HEIGHT = 360;
 
-type PopoverPosition = {
-  top: number;
-  left: number;
-  width: number;
-};
-
-const PICKER_VIEWPORT_MARGIN = 8;
-const PICKER_GAP = 8;
-const PICKER_MIN_WIDTH = 320;
-const PICKER_MAX_WIDTH = 360;
-const PICKER_FALLBACK_HEIGHT = 360;
-
 function getDateFromString(dateStr: string): Date {
   if (!dateStr) return new Date();
   const date = new Date(dateStr);
   return Number.isNaN(date.getTime()) ? new Date() : date;
-}
-
-function getTimeParts(dateStr: string): { hour: string; minute: string } {
-  if (!dateStr) {
-    return {
-      hour: "00",
-      minute: "00",
-    };
-  }
-
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
-    return {
-      hour: "00",
-      minute: "00",
-    };
-  }
-
-  return {
-    hour: String(date.getHours()).padStart(2, "0"),
-    minute: String(date.getMinutes()).padStart(2, "0"),
-  };
 }
 
 function getTimeParts(dateStr: string): { hour: string; minute: string } {
@@ -144,66 +109,7 @@ export function DateTimePicker({
   const [selectedHour, setSelectedHour] = useState(() => getTimeParts(value).hour);
   const [selectedMinute, setSelectedMinute] = useState(() => getTimeParts(value).minute);
   const [popoverPosition, setPopoverPosition] = useState<PopoverPosition | null>(null);
-  const [selectedHour, setSelectedHour] = useState(() => getTimeParts(value).hour);
-  const [selectedMinute, setSelectedMinute] = useState(() => getTimeParts(value).minute);
-  const [popoverPosition, setPopoverPosition] = useState<PopoverPosition | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  const closePicker = useCallback(() => {
-    setPopoverPosition(null);
-    setIsOpen(false);
-    onClose?.();
-  }, [onClose]);
-
-  const openPicker = useCallback(() => {
-    setSelectedDate(value ? getDateFromString(value) : null);
-    setDisplayMonth(getInitialMonth(value, tripStartDate));
-
-    const { hour, minute } = getTimeParts(value);
-    setSelectedHour(hour);
-    setSelectedMinute(minute);
-    setPopoverPosition(null);
-    setIsOpen(true);
-  }, [tripStartDate, value]);
-
-  const updatePopoverPosition = useCallback(() => {
-    if (!isOpen) return;
-
-    const triggerRect = pickerRef.current?.getBoundingClientRect();
-    if (!triggerRect) return;
-
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const panelWidth = Math.min(
-      Math.max(triggerRect.width, PICKER_MIN_WIDTH),
-      PICKER_MAX_WIDTH,
-      viewportWidth - PICKER_VIEWPORT_MARGIN * 2,
-    );
-    const panelHeight = panelRef.current?.offsetHeight ?? PICKER_FALLBACK_HEIGHT;
-    const openBelow =
-      triggerRect.bottom + PICKER_GAP + panelHeight <=
-      viewportHeight - PICKER_VIEWPORT_MARGIN;
-    const top = openBelow
-      ? Math.min(
-          triggerRect.bottom + PICKER_GAP,
-          viewportHeight - panelHeight - PICKER_VIEWPORT_MARGIN,
-        )
-      : Math.max(
-          PICKER_VIEWPORT_MARGIN,
-          triggerRect.top - panelHeight - PICKER_GAP,
-        );
-    const left = Math.min(
-      Math.max(triggerRect.left, PICKER_VIEWPORT_MARGIN),
-      viewportWidth - panelWidth - PICKER_VIEWPORT_MARGIN,
-    );
-
-    setPopoverPosition({
-      top,
-      left,
-      width: panelWidth,
-    });
-  }, [isOpen]);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const closePicker = useCallback(() => {
@@ -275,24 +181,11 @@ export function DateTimePicker({
     closePicker();
   }, [closePicker, isOpen]);
 
-    const target = event.target as Node;
-    const trigger = pickerRef.current;
-    const panel = panelRef.current;
-
-    if (trigger?.contains(target) || panel?.contains(target)) {
-      return;
-    }
-
-    closePicker();
-  }, [closePicker, isOpen]);
-
   const handleEscapeKey = useCallback((event: KeyboardEvent) => {
     if (!isOpen) return;
     if (event.key === "Escape") {
       closePicker();
-      closePicker();
     }
-  }, [closePicker, isOpen]);
   }, [closePicker, isOpen]);
 
   useEffect(() => {
@@ -303,22 +196,6 @@ export function DateTimePicker({
       document.removeEventListener("keydown", handleEscapeKey);
     };
   }, [handleClickOutside, handleEscapeKey]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleReposition = () => updatePopoverPosition();
-    const frame = window.requestAnimationFrame(handleReposition);
-
-    window.addEventListener("resize", handleReposition);
-    window.addEventListener("scroll", handleReposition, true);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("resize", handleReposition);
-      window.removeEventListener("scroll", handleReposition, true);
-    };
-  }, [displayMonth.month, displayMonth.year, isOpen, updatePopoverPosition]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -377,7 +254,6 @@ export function DateTimePicker({
       const isoString = `${pad(selectedDate.getFullYear())}-${pad(selectedDate.getMonth() + 1)}-${pad(selectedDate.getDate())}T${selectedHour}:${selectedMinute}`;
       onChange(isoString);
       closePicker();
-      closePicker();
     }
   };
 
@@ -386,7 +262,6 @@ export function DateTimePicker({
     setSelectedHour("00");
     setSelectedMinute("00");
     onChange("");
-    closePicker();
     closePicker();
   };
 
@@ -418,14 +293,6 @@ export function DateTimePicker({
           }
         }}
         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-left text-sm text-slate-900 shadow-sm transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-        onClick={() => {
-          if (isOpen) {
-            closePicker();
-          } else {
-            openPicker();
-          }
-        }}
-        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-left text-sm text-slate-900 shadow-sm transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
       >
         {formatDisplayDate(value)}
       </button>
@@ -433,14 +300,6 @@ export function DateTimePicker({
       {/* Render the popover outside the main DOM hierarchy to avoid hydration mismatches and CSS stacking-context issues. */}
       {isOpen && typeof document !== "undefined" && createPortal(
         <div
-          ref={panelRef}
-          className="fixed z-[70] max-w-[calc(100vw-1rem)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl"
-          style={{
-            top: popoverPosition?.top ?? PICKER_VIEWPORT_MARGIN,
-            left: popoverPosition?.left ?? PICKER_VIEWPORT_MARGIN,
-            width: popoverPosition?.width ?? PICKER_MIN_WIDTH,
-            visibility: popoverPosition ? "visible" : "hidden",
-          }}
           ref={panelRef}
           className="fixed z-[70] max-w-[calc(100vw-1rem)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl"
           style={{
@@ -477,7 +336,6 @@ export function DateTimePicker({
             {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
               <div
                 key={day}
-                className="flex h-6 items-center justify-center text-xs font-semibold text-slate-500"
                 className="flex h-6 items-center justify-center text-xs font-semibold text-slate-500"
               >
                 {day}
@@ -558,8 +416,6 @@ export function DateTimePicker({
               OK
             </button>
           </div>
-        </div>,
-        document.body,
         </div>,
         document.body,
       )}
